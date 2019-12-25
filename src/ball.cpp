@@ -93,9 +93,6 @@ void correction_img(string camera, int dis_Ix, int dis_Iy, double fu, double fv,
     // calculate distortion ray vector
     dis_hxz = (dis_Ix - u0) / fu;
     dis_hyz = (dis_Iy - v0) / fv;
-    //cout << "distortion hxz_L = " << dis_hxz << endl;
-    //cout << "distortion hyz_L = " << dis_hyz << endl;
-
 
     // calcuate correction parameter
     rd = sqrt(pow(dis_hxz,2)+pow(dis_hyz,2));
@@ -108,9 +105,6 @@ void correction_img(string camera, int dis_Ix, int dis_Iy, double fu, double fv,
     // calculate correction position
     Ix_L = u0 + fu*hxz;
     Iy_L = v0 + fv*hyz;
-    //cout << "correct Ix_L Iy_L = [" << Ix_L << "," << Iy_L << "]" << endl;
-    //cout << "Ix_L by func = " << Ix_L << endl;
-    //cout << "Iy_L by func= " << Iy_L << endl;
 
   }
 
@@ -130,9 +124,6 @@ void correction_img(string camera, int dis_Ix, int dis_Iy, double fu, double fv,
     // calculate correction position
     Ix_R = u0 + fu*hxz;
     Iy_R = v0 + fv*hyz;
-    //cout << "correct Ix_R Iy_R = [" << Ix_R << "," << Iy_R << "]" << endl;
-    //cout << "Ix_R by func = " << Ix_R << endl;
-    //cout << "Iy_R by func= " << Iy_R << endl;
 
   }
 
@@ -176,12 +167,6 @@ void tt(){
 
 
   while (ros::ok()) {
-    //ROS_INFO("dis_Ix_L = %f, dis_Iy_L = %f \n", a,b);
-    //ROS_INFO("dis_Ix_R = %f, dis_Iy_R = %f \n", c,dd);
-    //cout << dis_Ix_L << "," << dis_Iy_L << "|" << dis_Ix_R << "," << dis_Iy_R << endl;
-    //cout << "ID_L = " << ID_L  << ", ID_R = " << ID_R << endl;
-
-    //diff = ID_L - ID_R;
     id_L = ID_L;
     id_R = ID_R;
 
@@ -202,12 +187,7 @@ void tt(){
         dif_L2W[0] = hx_L-b_L2W[0];
         dif_L2W[1] = hy_L-b_L2W[1];
         dif_L2W[2] = hz_L-b_L2W[2];
-/*
-        hx_W = R_W2L[0][0]*dif_L2W[0] + R_W2L[0][1]*dif_L2W[1] + R_W2L[0][2]*dif_L2W[2];
-        hy_W = R_W2L[1][0]*dif_L2W[0] + R_W2L[1][1]*dif_L2W[1] + R_W2L[1][2]*dif_L2W[2];
-        hz_W = R_W2L[2][0]*dif_L2W[0] + R_W2L[2][1]*dif_L2W[1] + R_W2L[2][2]*dif_L2W[2];
-        //cout << "object position = [" << hx_W / 10 << "," << hy_W / 10 << "," << hz_W / 10 << "]" << endl;
-*/
+
         hx_W = R_W2L[0][0] * dif_L2W[0] + R_W2L[0][1] * dif_L2W[1] + R_W2L[0][2] * dif_L2W[2] - 17.6031;
         hy_W = R_W2L[1][0] * dif_L2W[0] + R_W2L[1][1] * dif_L2W[1] + R_W2L[1][2] * dif_L2W[2] - (-23.1113);
         hz_W = R_W2L[2][0] * dif_L2W[0] + R_W2L[2][1] * dif_L2W[1] + R_W2L[2][2] * dif_L2W[2] - 18.5448 + 16;
@@ -248,55 +228,11 @@ void tt(){
           //cout << "correction position = [" << hx_W / 10 << "," << hy_W / 10 << "," << hz_W / 10 << "]" << endl;
           y2 = y1;
           i = i+1;
-          //ros::spinOnce();
         }
-        //isDone = true;
+
       }
 
     }
-    //cloud.points.clear();
-    //cloud.width  = 30;
-    //cloud.height = 1;
-
-/*
-    if ((dis_Ix_L >= 0) && (dis_Iy_L >= 0) && (dis_Ix_R >= 0) && (dis_Iy_R >= 0)){
-      correction_img(camera_L, dis_Ix_L, dis_Iy_L, fu_L, fv_L, u0_L, v0_L, kc_L);
-      correction_img(camera_R, dis_Ix_R, dis_Iy_R, fu_R, fv_R, u0_R, v0_R, kc_R);
-
-      // calcuate k
-      double k = ((R_R2L[0][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[0][1]*(Iy_L-v0_L)/fv_L) + R_R2L[0][2]) - ((Ix_R-u0_R)/fu_R)*((R_R2L[2][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[2][1]*(Iy_L-v0_L)/fv_L) + R_R2L[2][2]);
-
-      // calculate left ray vector
-      hz_L = (d[0] - (d[2]*(Ix_R-u0_R)/fu_R)) / k;
-      hx_L = hz_L*(Ix_L-u0_L)/fu_L;
-      hy_L = hz_L*(Iy_L-v0_L)/fv_L;
-
-      dif_L2W[0] = hx_L-b_L2W[0];
-      dif_L2W[1] = hy_L-b_L2W[1];
-      dif_L2W[2] = hz_L-b_L2W[2];
-
-      hx_W = R_W2L[0][0]*dif_L2W[0] + R_W2L[0][1]*dif_L2W[1] + R_W2L[0][2]*dif_L2W[2];
-      hy_W = R_W2L[1][0]*dif_L2W[0] + R_W2L[1][1]*dif_L2W[1] + R_W2L[1][2]*dif_L2W[2];
-      hz_W = R_W2L[2][0]*dif_L2W[0] + R_W2L[2][1]*dif_L2W[1] + R_W2L[2][2]*dif_L2W[2];
-      //cout << "object position = [" << hx_W / 10 << "," << hy_W / 10 << "," << hz_W / 10 << "]" << endl;
-
-      hx_W = R_W2L[0][0] * dif_L2W[0] + R_W2L[0][1] * dif_L2W[1] + R_W2L[0][2] * dif_L2W[2] - 17.6031;
-      hy_W = R_W2L[1][0] * dif_L2W[0] + R_W2L[1][1] * dif_L2W[1] + R_W2L[1][2] * dif_L2W[2] - (-23.1113);
-      hz_W = R_W2L[2][0] * dif_L2W[0] + R_W2L[2][1] * dif_L2W[1] + R_W2L[2][2] * dif_L2W[2] - 18.5448 + 16;
-
-      y1 = hy_W;
-      //diff = y1-y2;
-      if (y1 != y2){
-        cout << "ID_L = " << ID_L  << ", ID_R = " << ID_R << endl;;
-        cout << "correction position = [" << hx_W / 10 << "," << hy_W / 10 << "," << hz_W / 10 << "]" << endl;
-        y2 = y1;
-      }
-
-    }
-    */
-    /*else{
-      cout << "not found ball" << endl;
-    }*/
 
   }
 
