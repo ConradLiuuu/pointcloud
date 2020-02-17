@@ -13,13 +13,13 @@ using namespace ros;
 
 string camera_L = "left", camera_R = "right";
 // left camera intrinsic parameter
-double fu_L = 1767.89133, fv_L = 1768.29877;  // focal length
-double u0_L = 1032.41658, v0_L = 779.77186;  // principal point
-double kc_L[8] = {0.00305139641514509, -0.00765590095180579, 0.00129026164796253, 0.00304992343089967, -0.00232649720836786, 0.00625583703031773, -0.00076244567038416, -0.00229054173473991};
+double fu_L = 1766.56232, fv_L = 1766.80239;  // focal length
+double u0_L = 1038.99491, v0_L = 783.18243;  // principal point
+double kc_L[8] = {-0.00825394043969168, 0.0179401516569629, 4.99404147750032e-05, 0.00191928903162996, 0.00543957313843740, -0.0137634713444645, -3.37506702874865e-05, -0.00143562480046507};
 // right camera intrinsic parameter
-double fu_R = 1767.11269, fv_R = 1768.73380; // focal length
-double u0_R = 1055.03490, v0_R = 775.48461; // principal point
-double kc_R[8] = {-0.00240554144590306, 0.00415861668132687, 0.00124996506239818, 0.000930166885290533, 0.00202439715420488, -0.00351884072634534, -0.000806762468456028, -0.000668423449138214};
+double fu_R = 1764.19837, fv_R = 1765.54600; // focal length
+double u0_R = 1056.77639, v0_R = 773.98008; // principal point
+double kc_R[8] = {-0.00771656075847792, 0.0111416719316138, 0.000739495171748185, 0.000840103654848698, 0.00584317345777879, -0.00874157051790497, -0.000384902445181700, -0.000593299662265151};
 
 //double a = 0,b = 0, c = 0, dd = 0;
 int dis_Ix_L = -1, dis_Iy_L = -1, dis_Ix_R = -1, dis_Iy_R = -1;
@@ -411,19 +411,21 @@ void trajectory(){
   pcl::PointCloud<pcl::PointXYZ> cloud_landing;
   sensor_msgs::PointCloud2 output_landing;
 
-  double R_R2L[3][3] = {{0.973111335157242, 0.00164499724031902, 0.230329380176672},{-0.00161841567681531, 0.999998644055752, -0.000304330996052487},{-0.230329568486522, -0.0000766207378107115, 0.973112677961846}}; // matlab given
+  double R_R2L[3][3] = {{0.9633, -0.1044, 0.2474},{0.1166, 0.9925, -0.0353},{-0.2419, 0.0628, 0.9683}}; // matlab given
   double R_L2R[3][3] = {{R_R2L[0][0], R_R2L[1][0], R_R2L[2][0]},{R_R2L[0][1], R_R2L[1][1], R_R2L[2][1]},{R_R2L[0][2], R_R2L[1][2], R_R2L[2][2]}};
 
-  double b_R2L[3] = {-320.44171, -0.50178, 79.70245}; // matlab given
-  double b_L2R[3] = {330.18247908537, 1.03501190877172, -3.75247681977456}; // -R_L2R * b_R2L
+  double b_R2L[3] = {-840.38437, -115.52910, 232.14452}; // matlab given
+  double b_L2R[3] = {879.1440, 12.3325, -20.9244}; // -R_L2R * b_R2L
 
   double d[3];
   d[0] = (R_R2L[0][0]*b_L2R[0]) + (R_R2L[0][1]*b_L2R[1]) + (R_R2L[0][2]*b_L2R[2]);
   d[1] = (R_R2L[1][0]*b_L2R[0]) + (R_R2L[1][1]*b_L2R[1]) + (R_R2L[1][2]*b_L2R[2]);
   d[2] = (R_R2L[2][0]*b_L2R[0]) + (R_R2L[2][1]*b_L2R[1]) + (R_R2L[2][2]*b_L2R[2]);
 
-  double b_L2W[3] = {-819.727918, 437.972549, 1550.559426};
-  double R_L2W[3][3] = {{0.999860, -0.010543, 0.012973}, {0.006686, -0.459035, -0.888393}, {0.015321, 0.888356, -0.458900}};
+  double b_L2W[3] = {-699.620721, 450.703227, 2042.738938};
+  double R_L2W[3][3] = {{0.999942, 0.001900, -0.010572},{-0.009106, -0.372230, -0.928096},{-0.005698, 0.928139, -0.372191}};
+  //double b_L2W[3] = {-725.854668323573, 448.519861884423, 2062.36644303230};
+  //double R_L2W[3][3] = {{-0.0069, 1.0000, 0.0060},{-0.3745, -0.0081, 0.9272},{0.9272, 0.0042, 0.3745}};
   double R_W2L[3][3] = {{R_L2W[0][0], R_L2W[1][0], R_L2W[2][0]},{R_L2W[0][1], R_L2W[1][1], R_L2W[2][1]},{R_L2W[0][2], R_L2W[1][2], R_L2W[2][2]}};
 
   double hx_L, hy_L, hz_L;
@@ -507,9 +509,9 @@ void trajectory(){
         dif_L2W[1] = hy_L-b_L2W[1];
         dif_L2W[2] = hz_L-b_L2W[2];
 
-        hx_W = R_W2L[0][0] * dif_L2W[0] + R_W2L[0][1] * dif_L2W[1] + R_W2L[0][2] * dif_L2W[2] - 17.6031;
-        hy_W = R_W2L[1][0] * dif_L2W[0] + R_W2L[1][1] * dif_L2W[1] + R_W2L[1][2] * dif_L2W[2] - (-23.1113);
-        hz_W = R_W2L[2][0] * dif_L2W[0] + R_W2L[2][1] * dif_L2W[1] + R_W2L[2][2] * dif_L2W[2] - 18.5448 + 16;
+        hx_W = R_W2L[0][0] * dif_L2W[0] + R_W2L[0][1] * dif_L2W[1] + R_W2L[0][2] * dif_L2W[2]/* - 17.6031*/;
+        hy_W = R_W2L[1][0] * dif_L2W[0] + R_W2L[1][1] * dif_L2W[1] + R_W2L[1][2] * dif_L2W[2]/* - (-23.1113)*/;
+        hz_W = R_W2L[2][0] * dif_L2W[0] + R_W2L[2][1] * dif_L2W[1] + R_W2L[2][2] * dif_L2W[2]/* - 18.5448*/ + 16;
 
         hx = hx_W / 10;
         hy = hy_W / 10;
@@ -517,11 +519,13 @@ void trajectory(){
 
         y1 = hy_W;
 
+        //cout << hx << ", " << hy << ", " << hz << endl;
+
         if ((y1 != y2) && (ID_L == ID_R )){
           //cout << "T = " << T << endl;
           // curve fitting using 1st~10th
-          cout << "time = " << T << endl;
-          cout << hx << ", " << hy << ", " << hz << endl;
+          //cout << "time = " << T << endl;
+          //cout << hx << ", " << hy << ", " << hz << endl;
           if (cnt_reg != reg_num && hy > 50) {
             reg_x.addPoint(T, hx);
             reg_y.addPoint(T, hy);
@@ -578,7 +582,7 @@ void trajectory(){
             bool sol = reg_z.calRoots();
             if (sol == true){
               landing_time = reg_z.root;
-              cout << "landing time = " << landing_time << endl;
+              //cout << "landing time = " << landing_time << endl;
               islanding = true;
               //cout << "numer of time = " << landing_time / delta_T << endl;
             }
@@ -586,7 +590,7 @@ void trajectory(){
             land_position_x = reg_x.getRegRes(landing_time);
             land_position_y = reg_y.getRegRes(landing_time);
             land_position_z = reg_z.getRegRes(landing_time);
-            cout << "Landing position by regression = " << land_position_x << ", " << land_position_y << ", " << land_position_z << endl;
+            //cout << "Landing position by regression = " << land_position_x << ", " << land_position_y << ", " << land_position_z << endl;
 
             cloud_landing.points[0].x = land_position_x;
             cloud_landing.points[0].y = land_position_y;
@@ -638,7 +642,7 @@ void trajectory(){
             hit = false;
           }
           else{ // nearby ping pong table
-            //cout << hx << ", " << hy << ", " << hz << endl;
+            cout << hx << ", " << hy << ", " << hz << endl;
             if (0 < (KF.X[2] + KF.X[5]*delta_T) && islanding == true){ // 1st fly model
               time += delta_T;
               // measurement position
@@ -646,7 +650,7 @@ void trajectory(){
               // prediction
               KF.kalmanfilter();
               //cout << "1st fly model by KF = " << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2] << endl;
-              cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 1st fly model by KF"  << endl;
+              //cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 1st fly model by KF"  << endl;
 
               cloud_KF.points[i].x = KF.X[0];
               cloud_KF.points[i].y = KF.X[1];
@@ -656,7 +660,7 @@ void trajectory(){
               KF_pub.publish(output_KF);
 
               if (0 > (KF.X[2] + KF.X[5]*delta_T)){ // Rebound model
-                cout << "Rebound !!!" << endl;
+                //cout << "Rebound !!!" << endl;
                 isRebound = true;
                 KF.UpdateWeight(40, 1); // modify 2nd KF weights
                 // rebound model
@@ -679,16 +683,16 @@ void trajectory(){
               // measurement position
               KF.Z << hx, hy, hz;
               KF.kalmanfilter();
-              cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 2nd fly model by KF"  << endl;
+              //cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 2nd fly model by KF"  << endl;
 
               //cout << "pos now y = " << pos_now.y << endl;
               //cout << "test yyy = " << KF.X[1] + KF.X[4]*delta_T/2 << ", pos y = " << KF.X[1] << ",  vy =  " << KF.X[4] << endl;
 
               if (((KF.X[1] + KF.X[4]*delta_T/2) <= strike_point) && (hit == false)){
                 double tt = delta_T * (strike_point-KF.X[1]) / (KF.X[4]*delta_T);
-                cout << "found strike point: " << KF.X[0] + KF.X[3] * tt << ", " << KF.X[1] + KF.X[4] * tt << ", " << KF.X[2] + KF.X[5] * tt << endl;
+                //cout << "found strike point: " << KF.X[0] + KF.X[3] * tt << ", " << KF.X[1] + KF.X[4] * tt << ", " << KF.X[2] + KF.X[5] * tt << endl;
                 hit = true;
-                cout << "strike timing = " << time + tt << endl;
+                //cout << "strike timing = " << time + tt << endl;
               }
               //cout << "2nd fly model by KF = " << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2] << endl;
               //cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 2nd fly model by KF"  << endl;
