@@ -136,7 +136,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(viz src/viz.cpp)
+add_executable(viz20200218 src/viz20200218.cpp)
 add_executable(ball src/ball.cpp)
 add_executable(trajectory src/trajectory.cpp)
 add_executable(KF_trajectory src/KF_trajectory.cpp)
@@ -153,7 +153,7 @@ add_executable(KF_trajectory20191225 src/KF_trajectory20191225.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(viz
+target_link_libraries(viz20200218
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
