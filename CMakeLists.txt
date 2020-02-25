@@ -141,6 +141,8 @@ add_executable(ball src/ball.cpp)
 add_executable(trajectory src/trajectory.cpp)
 add_executable(KF_trajectory src/KF_trajectory.cpp)
 add_executable(KF_trajectory20191225 src/KF_trajectory20191225.cpp)
+add_executable(sub src/sub.cpp)
+add_executable(viz_stereo src/viz_stereo.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -173,6 +175,16 @@ target_link_libraries(KF_trajectory20191225
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
+target_link_libraries(sub
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(viz_stereo
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
 #link_directories(${PCL_LIBRARY_DIRS})
 #############
 ## Install ##
