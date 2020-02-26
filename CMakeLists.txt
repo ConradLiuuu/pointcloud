@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  OpenCV
 )
 
 ## System dependencies are found with CMake's conventions
@@ -120,6 +121,7 @@ catkin_package(
 include_directories(
   #include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
   include${PCL_INCLUDE_DIRS}
 )
 
@@ -143,6 +145,8 @@ add_executable(KF_trajectory src/KF_trajectory.cpp)
 add_executable(KF_trajectory20191225 src/KF_trajectory20191225.cpp)
 add_executable(sub src/sub.cpp)
 add_executable(viz_stereo src/viz_stereo.cpp)
+add_executable(viz20200218_offline src/viz20200218_offline.cpp)
+add_executable(show_offline src/show_offline.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -182,6 +186,18 @@ target_link_libraries(sub
 
 target_link_libraries(viz_stereo
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(viz20200218_offline
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  #${PCL_LIBRARIES}
+)
+
+target_link_libraries(show_offline
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
   ${PCL_LIBRARIES}
 )
 

@@ -12,11 +12,11 @@ int main(int argc, char** argv)
 {
   vector<double> mea, vis;
 
-  ros::init(argc, argv, "viz_stereo");
+  ros::init(argc, argv, "show_offline");
   ros::NodeHandle n;
 
-  ros::Publisher measurement_pub = n.advertise<sensor_msgs::PointCloud2> ("measurement_output", 1);
-  ros::Publisher visual_pub = n.advertise<sensor_msgs::PointCloud2> ("visual_output", 1);
+  ros::Publisher measurement_pub = n.advertise<sensor_msgs::PointCloud2> ("online_output", 1);
+  ros::Publisher visual_pub = n.advertise<sensor_msgs::PointCloud2> ("offline_output", 1);
 
   pcl::PointCloud<pcl::PointXYZ> measurement;
   sensor_msgs::PointCloud2 measurement_output;
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
   visual.points.resize(visual.width * visual.height);
 
   fstream myfile;
-  myfile.open ("/home/lab606a/Documents/stereo_m.csv");
+  myfile.open ("/home/lab606a/Documents/tmp.csv");
 
   string line;
 
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
   }
 
   myfile.close();
-
+/*
   myfile.open ("/home/lab606a/Documents/stereo_v.csv");
   while (getline(myfile, line, '\n')){
     istringstream templine(line);
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
   }
 
   myfile.close();
-
+*/
 
 
   //cout << matrix.size() << endl;
@@ -97,11 +97,11 @@ int main(int argc, char** argv)
     measurement.points[i].x = mea[i];
     measurement.points[i].y = mea[i+1];
     measurement.points[i].z = mea[i+2];
-
-    visual.points[i].x = vis[i];
-    visual.points[i].y = vis[i+1];
-    visual.points[i].z = vis[i+2];
-
+/*
+    visual.points[i].x = mea[i+3];
+    visual.points[i].y = mea[i+4];
+    visual.points[i].z = mea[i+5];
+*/
     i = i + 3;
   }
 
