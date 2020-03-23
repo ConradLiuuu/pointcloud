@@ -23,10 +23,10 @@ int main(int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZ> visual;
   sensor_msgs::PointCloud2 visual_output;
 
-  measurement.width  = 1000;
+  measurement.width  = 198;
   measurement.height = 1;
   measurement.points.resize(measurement.width * measurement.height);
-  visual.width  = 1000;
+  visual.width  = 198;
   visual.height = 1;
   visual.points.resize(visual.width * visual.height);
 

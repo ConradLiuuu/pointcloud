@@ -422,11 +422,9 @@ void trajectory(){
   d[1] = (R_R2L[1][0]*b_L2R[0]) + (R_R2L[1][1]*b_L2R[1]) + (R_R2L[1][2]*b_L2R[2]);
   d[2] = (R_R2L[2][0]*b_L2R[0]) + (R_R2L[2][1]*b_L2R[1]) + (R_R2L[2][2]*b_L2R[2]);
 
-  double b_L2W[3] = {-699.620721, 450.703227, 2042.738938};
-  double R_L2W[3][3] = {{0.999942, 0.001900, -0.010572},{-0.009106, -0.372230, -0.928096},{-0.005698, 0.928139, -0.372191}};
-  //double b_L2W[3] = {-725.854668323573, 448.519861884423, 2062.36644303230};
-  //double R_L2W[3][3] = {{-0.0069, 1.0000, 0.0060},{-0.3745, -0.0081, 0.9272},{0.9272, 0.0042, 0.3745}};
-  double R_W2L[3][3] = {{R_L2W[0][0], R_L2W[1][0], R_L2W[2][0]},{R_L2W[0][1], R_L2W[1][1], R_L2W[2][1]},{R_L2W[0][2], R_L2W[1][2], R_L2W[2][2]}};
+  double b_L2W[3] = {-699.620721, 450.703227, 2042.738938}; // matlab given
+  double R_W2L[3][3] = {{0.999942, 0.001900, -0.010572},{-0.009106, -0.372230, -0.928096},{-0.005698, 0.928139, -0.372191}}; // matlab given
+  double R_L2W[3][3] = {{R_W2L[0][0], R_W2L[1][0], R_W2L[2][0]},{R_W2L[0][1], R_W2L[1][1], R_W2L[2][1]},{R_W2L[0][2], R_W2L[1][2], R_W2L[2][2]}};
 
   double hx_L, hy_L, hz_L;
 
@@ -509,9 +507,9 @@ void trajectory(){
         dif_L2W[1] = hy_L-b_L2W[1];
         dif_L2W[2] = hz_L-b_L2W[2];
 
-        hx_W = R_W2L[0][0] * dif_L2W[0] + R_W2L[0][1] * dif_L2W[1] + R_W2L[0][2] * dif_L2W[2]/* - 17.6031*/;
-        hy_W = R_W2L[1][0] * dif_L2W[0] + R_W2L[1][1] * dif_L2W[1] + R_W2L[1][2] * dif_L2W[2]/* - (-23.1113)*/;
-        hz_W = R_W2L[2][0] * dif_L2W[0] + R_W2L[2][1] * dif_L2W[1] + R_W2L[2][2] * dif_L2W[2]/* - 18.5448*/ + 16;
+        hx_W = R_L2W[0][0] * dif_L2W[0] + R_L2W[0][1] * dif_L2W[1] + R_L2W[0][2] * dif_L2W[2] - (-5.717688);
+        hy_W = R_L2W[1][0] * dif_L2W[0] + R_L2W[1][1] * dif_L2W[1] + R_L2W[1][2] * dif_L2W[2] - (-0.331069);
+        hz_W = R_L2W[2][0] * dif_L2W[0] + R_L2W[2][1] * dif_L2W[1] + R_L2W[2][2] * dif_L2W[2] - (5.301289) + 16;
 
         hx = hx_W / 10;
         hy = hy_W / 10;
@@ -590,7 +588,7 @@ void trajectory(){
             land_position_x = reg_x.getRegRes(landing_time);
             land_position_y = reg_y.getRegRes(landing_time);
             land_position_z = reg_z.getRegRes(landing_time);
-            //cout << "Landing position by regression = " << land_position_x << ", " << land_position_y << ", " << land_position_z << endl;
+            cout << "Landing position by regression = " << land_position_x << ", " << land_position_y << ", " << land_position_z << endl;
 
             cloud_landing.points[0].x = land_position_x;
             cloud_landing.points[0].y = land_position_y;
@@ -616,7 +614,7 @@ void trajectory(){
 
           T += delta_T;
 
-          if (hy <= (-20)){ // far away ping pong table
+          if (hy <= (-50)){ // far away ping pong table
             cloud.points.clear();
             //cloud.width  = 300;
             //cloud.height = 1;
@@ -642,14 +640,14 @@ void trajectory(){
             hit = false;
           }
           else{ // nearby ping pong table
-            cout << hx << ", " << hy << ", " << hz << endl;
+            //cout << hx << ", " << hy << ", " << hz << endl;
             if (0 < (KF.X[2] + KF.X[5]*delta_T) && islanding == true){ // 1st fly model
               time += delta_T;
               // measurement position
               KF.Z << hx, hy, hz;
               // prediction
               KF.kalmanfilter();
-              //cout << "1st fly model by KF = " << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2] << endl;
+              cout << "1st fly model by KF = " << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2] << endl;
               //cout << KF.X[0] << ", " << KF.X[1] << ", " << KF.X[2]<< " <-- 1st fly model by KF"  << endl;
 
               cloud_KF.points[i].x = KF.X[0];
@@ -708,9 +706,9 @@ void trajectory(){
 
             }
 
-            //pcl::toROSMsg(cloud_landing, output_landing);
-            //output_landing.header.frame_id = "map";
-            //landing_pub.publish(output_landing);
+            pcl::toROSMsg(cloud_landing, output_landing);
+            output_landing.header.frame_id = "map";
+            landing_pub.publish(output_landing);
 
             //cloud_KF.points[i].x = KF.X[0];
             //cloud_KF.points[i].y = KF.X[1];

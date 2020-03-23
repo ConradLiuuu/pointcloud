@@ -23,15 +23,15 @@ int main(int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZ> visual;
   sensor_msgs::PointCloud2 visual_output;
 
-  measurement.width  = 1000;
+  measurement.width  = 10000;
   measurement.height = 1;
   measurement.points.resize(measurement.width * measurement.height);
-  visual.width  = 1000;
+  visual.width  = 10000;
   visual.height = 1;
   visual.points.resize(visual.width * visual.height);
 
   fstream myfile;
-  myfile.open ("/home/lab606a/Documents/tmp.csv");
+  myfile.open ("/home/lab606a/ML/datasets/20200303/yhat_9balls_all.csv");
 
   string line;
 
@@ -44,8 +44,8 @@ int main(int argc, char** argv)
   }
 
   myfile.close();
-/*
-  myfile.open ("/home/lab606a/Documents/stereo_v.csv");
+
+  myfile.open ("/home/lab606a/ML/datasets/20200303/pred_9balls_all.csv");
   while (getline(myfile, line, '\n')){
     istringstream templine(line);
     string data;
@@ -55,8 +55,9 @@ int main(int argc, char** argv)
   }
 
   myfile.close();
-*/
 
+  cout << mea.size() << endl;
+  cout << vis.size() << endl;
 
   //cout << matrix.size() << endl;
 /*
@@ -92,19 +93,33 @@ int main(int argc, char** argv)
 */
   //cout << mea.size() << endl;
 
-  int i = 0;
-  while(i < mea.size()){
+  int j = 5;
+  int k = 31 * (j+1);
+  int i = 9*3*31*j;
+  //while(i < mea.size()){
+  while(i < 3*3*3*k){
     measurement.points[i].x = mea[i];
     measurement.points[i].y = mea[i+1];
     measurement.points[i].z = mea[i+2];
-/*
-    visual.points[i].x = mea[i+3];
-    visual.points[i].y = mea[i+4];
-    visual.points[i].z = mea[i+5];
-*/
+
+    //cout << mea[i] << endl;
+
+    visual.points[i].x = vis[i];
+    visual.points[i].y = vis[i+1];
+    visual.points[i].z = vis[i+2];
+
     i = i + 3;
   }
+/*
+  i = 0;
+  while(i < vis.size()){
+    visual.points[i].x = vis[i];
+    visual.points[i].y = vis[i+1];
+    visual.points[i].z = vis[i+2];
 
+    i = i + 3;
+  }
+*/
   while(ros::ok()){
     pcl::toROSMsg(measurement, measurement_output);
     measurement_output.header.frame_id = "map";

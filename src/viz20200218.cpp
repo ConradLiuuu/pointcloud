@@ -28,7 +28,7 @@ double Ix_L, Iy_L, Ix_R, Iy_R;
 //int ID_L, ID_R;
 int ID_L = 0, ID_R = 0;
 int id_L, id_R;
-bool isDone = true;
+int contour_L, contour_R;
 
 
 class Sub_ball_center
@@ -51,40 +51,18 @@ public:
 
   void callback_left(const std_msgs::Int64MultiArray::ConstPtr& msg_left)
   {
-    if ((msg_left->data[1] >= 0) && (msg_left->data[2] >= 0)){
-      ID_L = msg_left->data[0];
-      dis_Ix_L = msg_left->data[1];
-      dis_Iy_L = msg_left->data[2];
-      //cout << "ID_L = " << ID_L << endl;
-      //isDone = false;
-    }
-    else {
-      ID_L = 0;
-      dis_Ix_L = -1;
-      dis_Iy_L = -1;
-    }
-
-    //cout << "dis_Ix_L = " << dis_Ix_L << endl;
-    //cout << "dis_Iy_L = " << dis_Iy_L << endl;
+    ID_L = msg_left->data[0];
+    dis_Ix_L = msg_left->data[1];
+    dis_Iy_L = msg_left->data[2];
+    contour_L = msg_left->data[3];
   }
 
   void callback_right(const std_msgs::Int64MultiArray::ConstPtr& msg_right)
   {
-    if ((msg_right->data[1] >= 0) && (msg_right->data[2] >= 0)){
-      ID_R = msg_right->data[0];
-      dis_Ix_R = msg_right->data[1];
-      dis_Iy_R = msg_right->data[2];
-      //cout << "ID_R = " << ID_R << endl;
-      //isDone = false;
-    }
-    else{
-      ID_R = -1;
-      dis_Ix_R = -1;
-      dis_Iy_R = -1;
-    }
-
-    //cout << "dis_Ix_R = " << dis_Ix_R << endl;
-    //cout << "dis_Iy_R = " << dis_Iy_R << endl;
+    ID_R = msg_right->data[0];
+    dis_Ix_R = msg_right->data[1];
+    dis_Iy_R = msg_right->data[2];
+    contour_R = msg_right->data[3];
   }
 };
 
@@ -174,13 +152,14 @@ void trajectory(){
   int y1;
   int y2 = 0;
   int i = 0;
+  double k = 0;
 
   cloud.width  = 1000;
   cloud.height = 1;
   cloud.points.resize(cloud.width * cloud.height);
 
-  //std::ofstream myfile;
-  //myfile.open ("/home/lab606a/Documents/tmp.csv");
+  std::ofstream myfile;
+  myfile.open ("/home/lab606a/Documents/tmp.csv");
 
   while (ros::ok()) {
     id_L = ID_L;
@@ -193,7 +172,7 @@ void trajectory(){
         correction_img(camera_R, dis_Ix_R, dis_Iy_R, fu_R, fv_R, u0_R, v0_R, kc_R);
 
         // calcuate k
-        double k = ((R_R2L[0][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[0][1]*(Iy_L-v0_L)/fv_L) + R_R2L[0][2]) - ((Ix_R-u0_R)/fu_R)*((R_R2L[2][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[2][1]*(Iy_L-v0_L)/fv_L) + R_R2L[2][2]);
+        k = ((R_R2L[0][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[0][1]*(Iy_L-v0_L)/fv_L) + R_R2L[0][2]) - ((Ix_R-u0_R)/fu_R)*((R_R2L[2][0]*(Ix_L-u0_L)/fu_L) + (R_R2L[2][1]*(Iy_L-v0_L)/fv_L) + R_R2L[2][2]);
 
         // calculate left ray vector
         hz_L = (d[0] - (d[2]*(Ix_R-u0_R)/fu_R)) / k;
@@ -222,18 +201,19 @@ void trajectory(){
           //myfile << hx << "," << hy << "," << hz << ",";
 
           if (hy <= (-50)){ // far away ping pong table
+          //if ((contour_L == 0) && (contour_R == 0)){
+
             cloud.points.clear();
-            //cloud.width  = 300;
-            //cloud.height = 1;
             cloud.points.resize(cloud.width * cloud.height);
             i = 0;
             cout << endl;
-            //myfile << "\n";
-            //cout << "ID_R = " << ID_R << endl;
+            myfile << "\n";
+
           }
           else{ // nearby ping pong table
             //cout << hx << ", " << hy << ", " << hz << endl;
             // Measurement trajectory
+            myfile << hx << "," << hy << "," << hz << ",";
             cloud.points[i].x = hx;
             cloud.points[i].y = hy;
             cloud.points[i].z = hz;
@@ -249,7 +229,7 @@ void trajectory(){
       }
     }
   }
-  //myfile.close();
+  myfile.close();
 }
 
 int main(int argc, char** argv)
