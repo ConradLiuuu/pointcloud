@@ -6,6 +6,8 @@ import pandas as pd
 from keras.models import load_model
 from keras.preprocessing import sequence
 import tensorflow as tf
+#from rospy.numpy_msg import numpy_msg
+#from rospy_tutorials.msg import Floats
 
 graph = tf.get_default_graph()
 
@@ -13,10 +15,14 @@ graph = tf.get_default_graph()
 gpu_options = tf.GPUOptions(allow_growth=True)
 sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
+np.set_printoptions(suppress=True)
+
 #model = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_10balls')
 
 class Listener:
     def __init__(self):
+        self.__sub = rospy.Subscriber("/visual_coordinate", Float32MultiArray, self.callback)
+        self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
         self.__classifier = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_11balls')
         self.__pred_top5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed5')
         self.__pred_top6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed6')
@@ -38,7 +44,10 @@ class Listener:
         self.__classification_done = False
         self.__done = False
         self.__pred = np.zeros([1,5,3])
-        self.__sub = rospy.Subscriber("/visual_coordinate", Float32MultiArray, self.callback)
+        self.__time = 0.03333
+        self.__delta_T = 0.03333
+        self.__pred_msg = Float32MultiArray()
+        self.__rate = rospy.Rate(100)
         print("already load model")
 
     ## print spin direction and speed
@@ -96,17 +105,20 @@ class Listener:
             classes = self.__classifier.predict(self.__tmp_classification)
         ## figure out which direction is
         self.__max_index = np.argmax(classes)
-        print("cnt = ", self.__cnt)
+        #print("cnt = ", self.__cnt)
         ## show result
         #self.show_spin_direction(self.__max_index)
         #self.__cnt += 1
 
     def callback(self, data):
         a = data.data
-        
         a2 = np.array([a[1:]])
-        #print("cnt = ", self.__cnt)
+
+        #print("time = ", self.__time)
+        
         if (a[0] == 1):
+            print("time = ", self.__time)
+
             if (self.__padding_done == False):
                 if ((self.__index+3) < (self.__n_balls*3+1)):
                     self.__tmp[:,self.__index:self.__index+3] = a2
@@ -141,13 +153,13 @@ class Listener:
                 ## prediction
                 #print("call prediction")
                 if (self.__done == False):
-                    print("ggggg")
+                    #print("ggggg")
                     ## update 
                     self.__tmp_prediction[0,:4,:] = self.__tmp_prediction[0,1:,:]
                     self.__tmp_prediction[0,4,:] = a2
                     print(self.__tmp_prediction)
                 if (self.__done == True):
-                    print("ddddd")
+                    #print("ddddd")
                     ## get last five balls by visual measurement
                     self.__tmpp[0,:] = self.__tmp[0,18:]
                     self.__tmpp = self.__tmpp.reshape(1,5,3)
@@ -156,7 +168,15 @@ class Listener:
                     print(self.__tmp_prediction)
 
                 self.show_spin_direction(self.__max_index)
-                self.__cnt += 1
+                self.__pred = self.__pred.reshape(15,1)
+                self.__pred = self.__pred.astype('float32')
+                self.__pred_msg.data = self.__pred
+                self.__pub.publish(self.__pred_msg)
+                #self.__rate.sleep()
+                self.__pred = self.__pred.reshape(1,5,3)
+
+                #self.__cnt += 1
+            self.__time = self.__time + self.__delta_T
 
 
         else:
@@ -166,7 +186,9 @@ class Listener:
             self.__classification_done = False
             self.__padding_done = False
             self.__done = False
+            self.__time = 0.3333
             #print("ccccc")
+
 
 
         '''
@@ -215,7 +237,7 @@ class Listener:
 
 
 if __name__ == '__main__':
-    rospy.init_node('test')
-    print("init node test.py")
+    rospy.init_node('classifier_test')
+    print("init node classifier_test.py")
     Listener()
     rospy.spin()
