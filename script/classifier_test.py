@@ -6,8 +6,6 @@ import pandas as pd
 from keras.models import load_model
 from keras.preprocessing import sequence
 import tensorflow as tf
-#from rospy.numpy_msg import numpy_msg
-#from rospy_tutorials.msg import Floats
 
 graph = tf.get_default_graph()
 
@@ -17,21 +15,10 @@ sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
 np.set_printoptions(suppress=True)
 
-#model = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_10balls')
-
 class Listener:
     def __init__(self):
         self.__sub = rospy.Subscriber("/visual_coordinate", Float32MultiArray, self.callback)
         self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
-        self.__classifier = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_11balls')
-        self.__pred_top5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed5')
-        self.__pred_top6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed6')
-        self.__pred_left5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_left_speed5')
-        self.__pred_left6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_left_speed6')
-        self.__pred_right5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_right_speed5')
-        self.__pred_right6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_right_speed6')
-        self.__pred_back5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_back_speed5')
-        self.__pred_back6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_back_speed6')
         self.__n_balls = 11
         self.__tmp = np.zeros([1,self.__n_balls*3])
         self.__tmpp = np.zeros([1,15])
@@ -48,6 +35,15 @@ class Listener:
         self.__delta_T = 0.03333
         self.__pred_msg = Float32MultiArray()
         self.__rate = rospy.Rate(100)
+        self.__classifier = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_11balls')
+        self.__pred_top5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed5')
+        self.__pred_top6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_top_speed6')
+        self.__pred_left5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_left_speed5')
+        self.__pred_left6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_left_speed6')
+        self.__pred_right5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_right_speed5')
+        self.__pred_right6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_right_speed6')
+        self.__pred_back5 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_back_speed5')
+        self.__pred_back6 = load_model('/home/lab606a/ML/trajectories/fixed/prediction/saved model/prediction_back_speed6')
         print("already load model")
 
     ## print spin direction and speed
@@ -172,7 +168,7 @@ class Listener:
                 self.__pred = self.__pred.astype('float32')
                 self.__pred_msg.data = self.__pred
                 self.__pub.publish(self.__pred_msg)
-                #self.__rate.sleep()
+                self.__rate.sleep()
                 self.__pred = self.__pred.reshape(1,5,3)
 
                 #self.__cnt += 1

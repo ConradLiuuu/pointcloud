@@ -150,6 +150,7 @@ add_executable(show_offline src/show_offline.cpp)
 add_executable(viz20200302 src/viz20200302.cpp)
 add_executable(viz20200320 src/viz20200320.cpp)
 add_executable(viz_prediction src/viz_prediction.cpp)
+add_executable(stereoooo src/stereoooo.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -214,6 +215,11 @@ target_link_libraries(viz20200320
 )
 
 target_link_libraries(viz_prediction
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(stereoooo
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )

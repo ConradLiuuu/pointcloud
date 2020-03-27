@@ -186,6 +186,8 @@ void trajectory(){
   double hx, hy, hz;
   double dif_L2W[3] = {0};
 
+  double start_, end_;
+
   int y1;
   int y2 = 0;
   int i = 0;
@@ -204,7 +206,7 @@ void trajectory(){
     id_R = ID_R;
 
     if (id_L == id_R){
-
+      start_ = ros::Time::now().toSec();
       if ((dis_Ix_L >= 0) && (dis_Iy_L >= 0) && (dis_Ix_R >= 0) && (dis_Iy_R >= 0) && (ID_L == ID_R)){
         correction_img(camera_L, dis_Ix_L, dis_Iy_L, fu_L, fv_L, u0_L, v0_L, kc_L);
         correction_img(camera_R, dis_Ix_R, dis_Iy_R, fu_R, fv_R, u0_R, v0_R, kc_R);
@@ -283,6 +285,8 @@ void trajectory(){
         }
 
       }
+      end_ = ros::Time::now().toSec();
+      cout << (end_-start_) << endl;
     }
   }
   //myfile.close();
