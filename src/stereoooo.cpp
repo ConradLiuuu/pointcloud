@@ -36,10 +36,10 @@ private:
     RowVector8i kc_R;
 
     int dis_Ix_L, dis_Iy_L, dis_Ix_R, dis_Iy_R;
-    int dis_Ix_L2, dis_Iy_L2, dis_Ix_R2, dis_Iy_R2;
     double Ix_L, Iy_L, Ix_R, Iy_R;
 
     int ID_L, ID_R, id_L, id_R;
+    int ID_L_past, ID_R_past;
 
     int contour_L, contour_R;
 
@@ -64,7 +64,8 @@ private:
 
     double k;
 
-    int x1, x2, y1, y2, z1, z2, i;
+    //int y1, y2, z1, z2, i;
+    int i;
 
 
     // ros setting
@@ -77,8 +78,6 @@ private:
 
     pcl::PointCloud<pcl::PointXYZ> cloud;
     sensor_msgs::PointCloud2 output;
-
-    bool RDone, LDone;
 
 public:
     Stereo(){
@@ -136,12 +135,14 @@ public:
         d = R_R2L*b_L2R;
 
         //x2 = 0;
-        y2 = 0;
-        z2 = 0;
-        i = 0;
+        ID_L_past = -1;
+        ID_R_past = -1;
+        ID_L = 1;
+        ID_R = 1;
 
-        RDone = true;
-        LDone = true;
+        //y2 = 0;
+        //z2 = 0;
+        i = 0;
 
         cloud.width  = 1000;
         cloud.height = 1;
@@ -157,12 +158,9 @@ public:
             
             id_L = ID_L;
             id_R = ID_R;
-
-            if ((id_L == id_R)/* && (LDone == false) && (RDone == false)*/){
-                dis_Ix_L2 = dis_Ix_L;
-                dis_Iy_L2 = dis_Iy_L;
-                dis_Ix_R2 = dis_Ix_R;
-                dis_Iy_R2 = dis_Iy_R;
+            if ((id_L == id_R) && (ID_L_past != id_L) && (ID_R_past != id_R)){
+                ID_L_past = id_L;
+                ID_R_past = id_R;
                 //start_ = ros::Time::now().toSec();
                 if ((dis_Ix_L >= 0) && (dis_Iy_L >= 0) && (dis_Ix_R >= 0) && (dis_Iy_R >= 0)/* && (ID_L == ID_R)*/){
                     correction_img(camera_L, dis_Ix_L, dis_Iy_L, fu_L, fv_L, u0_L, v0_L, kc_L);
@@ -177,20 +175,49 @@ public:
                     hy_L = hz_L*(Iy_L-v0_L)/fv_L;
 
                     h_L << hx_L, hy_L, hz_L;
-                    //cout << "h_L = " << h_L << endl;
-                    //h_L = h_L-b_L2W;
+
                     h_W = R_W2L.transpose() * (h_L-b_L2W) - compesation_value;
-                    //cout << "h_W = " << h_W << endl;
+
                     hx = h_W(0) / 10;
                     hy = h_W(1) / 10;
                     hz = h_W(2) / 10;
                     //cout << hx << ", " << hy << ", " << hz << endl;
 
-                    //x1 = int(h_W(0));
-                    y1 = int(h_W(1));
-                    z1 = int(h_W(2));
+                    //y1 = int(h_W(1));
+                    //z1 = int(h_W(2));
+                    
+                    if (hy < (-50)){
+                        coordinate.data.push_back(0);
+                        coordinate.data.push_back(0);
+                        coordinate.data.push_back(0);
+                        coordinate.data.push_back(0);
 
-                    if ((y1 != y2)/* && (ID_L == ID_R)*/ && (z1 != z2)){
+                        coor_pub.publish(coordinate);
+                        coordinate.data.clear();
+
+                        cloud.points.clear();
+                        cloud.points.resize(cloud.width * cloud.height);
+                        i = 0;
+                    }
+                    else{
+                        coordinate.data.push_back(1);
+                        coordinate.data.push_back(hx);
+                        coordinate.data.push_back(hy);
+                        coordinate.data.push_back(hz);
+
+                        coor_pub.publish(coordinate);
+                        coordinate.data.clear();
+
+                        cloud.points[i].x = hx;
+                        cloud.points[i].y = hy;
+                        cloud.points[i].z = hz;
+                        pcl::toROSMsg(cloud, output);
+                        output.header.frame_id = "map";
+                        pcl_pub.publish(output);
+                    }
+                    i += 1;
+                    /*
+                    if ((y1 != y2) && (z1 != z2)){
                         if (hy <= (-50)){
                             coordinate.data.push_back(0);
                             coordinate.data.push_back(0);
@@ -227,13 +254,12 @@ public:
                         z2 = z1;
                         i = i+1;
                     }
+                    */
                     //end_ = ros::Time::now().toSec();
                     //cout << (end_-start_) << endl;
                 }
                 
             }
-            LDone = true;
-            RDone = true;
             
         }
         
@@ -241,36 +267,16 @@ public:
 
 
     void callback_left(const std_msgs::Int64MultiArray::ConstPtr& msg_left){
-        /*
         ID_L = msg_left->data[0];
         dis_Ix_L = msg_left->data[1];
         dis_Iy_L = msg_left->data[2];
         contour_L = msg_left->data[3];
-        */
-        if (LDone == true){
-            ID_L = msg_left->data[0];
-            dis_Ix_L = msg_left->data[1];
-            dis_Iy_L = msg_left->data[2];
-            contour_L = msg_left->data[3];
-            LDone = false;
-        }
-       
     }
     void callback_right(const std_msgs::Int64MultiArray::ConstPtr& msg_right){
-        /*
         ID_R = msg_right->data[0];
         dis_Ix_R = msg_right->data[1];
         dis_Iy_R = msg_right->data[2];
         contour_R = msg_right->data[3];
-        */
-        if (RDone == true){
-            ID_R = msg_right->data[0];
-            dis_Ix_R = msg_right->data[1];
-            dis_Iy_R = msg_right->data[2];
-            contour_R = msg_right->data[3];
-            RDone = false;
-        }
-
     }
 
     void correction_img(string camera, int dis_Ix, int dis_Iy, double fu, double fv, double u0, double v0, Ref<RowVector8i> kc){
