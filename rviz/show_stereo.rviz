@@ -42,7 +42,7 @@ Visualization Manager:
     - Alpha: 0.5
       Cell Size: 100
       Class: rviz/Grid
-      Color: 160; 160; 164
+      Color: 0; 0; 0
       Enabled: true
       Line Style:
         Line Width: 0.029999999329447746
@@ -66,36 +66,6 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 114; 159; 207
-      Color Transformer: FlatColor
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: PointCloud2
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 11
-      Size (m): 0.009999999776482582
-      Style: Points
-      Topic: /measurement_output
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
       Color: 245; 121; 0
       Color Transformer: FlatColor
       Decay Time: 0
@@ -110,8 +80,38 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 11
-      Size (m): 0.009999999776482582
-      Style: Points
+      Size (m): 4
+      Style: Spheres
+      Topic: /measurement_output
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 8; 46; 249
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 11
+      Size (m): 4
+      Style: Squares
       Topic: /visual_output
       Unreliable: false
       Use Fixed Frame: true
@@ -119,14 +119,14 @@ Visualization Manager:
       Value: true
     - Class: rviz/Axes
       Enabled: true
-      Length: 80
+      Length: 50
       Name: Axes
-      Radius: 8
+      Radius: 5
       Reference Frame: <Fixed Frame>
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 255; 255; 255
     Default Light: true
     Fixed Frame: map
     Frame Rate: 30
@@ -152,25 +152,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 335.9576721191406
+      Distance: 312.4554138183594
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 89.4798355102539
-        Y: 161.08535766601562
-        Z: 62.89098358154297
+        X: 84.11595153808594
+        Y: 132.66647338867188
+        Z: 32.193851470947266
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.10020286589860916
+      Pitch: 0.09479783475399017
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.27855920791626
+      Yaw: 0.0053795622661709785
     Saved: ~
 Window Geometry:
   Displays:

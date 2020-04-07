@@ -9,6 +9,7 @@
 #include <math.h>
 #include <vector>
 #include <thread>
+#include <fstream>
 
 using namespace std;
 using namespace ros;
@@ -153,6 +154,8 @@ public:
     }
 
     void operator()(){
+        //std::ofstream myfile;
+        //myfile.open ("/home/lab606a/Documents/tmp.csv");
         while (ros::ok())
         {
             
@@ -198,8 +201,11 @@ public:
                         cloud.points.clear();
                         cloud.points.resize(cloud.width * cloud.height);
                         i = 0;
+
+                        //myfile << "\n";
                     }
                     else{
+                        //myfile << hx << "," << hy << "," << hz << ",";
                         coordinate.data.push_back(1);
                         coordinate.data.push_back(hx);
                         coordinate.data.push_back(hy);

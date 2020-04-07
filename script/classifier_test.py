@@ -31,8 +31,8 @@ class Listener:
         self.__classification_done = False
         self.__done = False
         self.__pred = np.zeros([1,5,3])
-        self.__time = 0.03333
-        self.__delta_T = 0.03333
+        self.__time = 0.016667
+        self.__delta_T = 0.016667
         self.__pred_msg = Float32MultiArray()
         self.__rate = rospy.Rate(100)
         self.__classifier = load_model('/home/lab606a/ML/trajectories/fixed/classification/8classes/saved model/classifier_8classes_fixed_11balls')
@@ -182,7 +182,7 @@ class Listener:
             self.__classification_done = False
             self.__padding_done = False
             self.__done = False
-            self.__time = 0.3333
+            self.__time = 0.016667
             #print("ccccc")
 
 
