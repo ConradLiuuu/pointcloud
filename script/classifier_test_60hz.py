@@ -19,27 +19,23 @@ np.set_printoptions(suppress=True)
 class Listener:
     def __init__(self):
         self.__sub = rospy.Subscriber("/visual_coordinate", Float32MultiArray, self.callback)
-        self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
-        self.__n_balls = 30
+        #self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
         self.__tmp = np.zeros([1,3])
         self.__tmpp = np.zeros([1,15])
-        self.__tmp_classification = np.zeros([1,self.__n_balls*3])
+        self.__tmp_classification = np.zeros([1,90])
         self.__a2 = np.zeros((1,3))
         self.__input_balls = np.zeros((5,3))
         self.__predction_balls = np.zeros((1,5,3))
         self.__tmp_prediction = np.zeros([1,15])
         self.__padding_done = False
-        self.__index = 0
         self.__cnt = 5
-        self.__ccc = 3
         self.__max_index = 0
         self.__classification_done = False
-        self.__done = False
         self.__pred = np.zeros([1,5,3])
         self.__time = 0.016667
         self.__delta_T = 0.016667
-        self.__pred_msg = Float32MultiArray()
-        self.__rate = rospy.Rate(100)
+        #self.__pred_msg = Float32MultiArray()
+        #self.__rate = rospy.Rate(100)
         self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/classification_30ball_20200404_filled_v2')
         self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_top5')
         self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_top6')
@@ -56,42 +52,42 @@ class Listener:
         print("top spin speed 5")
         with graph.as_default():
             self.__pred = self.__pred_top5.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def top6(self):
         print("top spin speed 6")
         with graph.as_default():
             self.__pred = self.__pred_top6.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def left5(self):
         print("left spin speed 5")
         with graph.as_default():
             self.__pred = self.__pred_left5.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def left6(self):
         print("left spin speed 6")
         with graph.as_default():
             self.__pred = self.__pred_left6.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def right5(self):
         print("right spin speed 5")
         with graph.as_default():
             self.__pred = self.__pred_right5.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def right6(self):
         print("right spin speed 6")
         with graph.as_default():
             self.__pred = self.__pred_right6.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def back5(self):
         print("back spin speed 5")
         with graph.as_default():
             self.__pred = self.__pred_back5.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
     def back6(self):
         print("back spin speed 6")
         with graph.as_default():
             self.__pred = self.__pred_back6.predict(self.__tmp_prediction.reshape(1,5,3))
-        print(self.__pred)
+        #print(self.__pred)
 
     def show_spin_direction(self, max_index):
         ## make dictionary to replace switch case
@@ -145,13 +141,14 @@ class Listener:
 
     def final_padding(self):
         self.__tmp = self.__tmp.reshape(1, self.__tmp.shape[0])
-        for i in range(4):
+        for i in range(4): ## padding zeros 4 times
             #self.__tmp = self.__tmp.reshape(1, self.__tmp.shape[0])
             self.__tmp = sequence.pad_sequences(self.__tmp, maxlen=(self.__tmp.shape[1]+3), padding='post', dtype='float32')
             self.__tmpp = np.vstack((self.__tmpp,self.__tmp[:,self.__tmp.shape[1]-15:]))
             self.__input_balls = self.__tmpp.reshape((self.__tmpp.shape[0], 5, 3))
             self.__tmp_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-15:] ## rolling visual measurement for predct next 5 steps
-            #self.show_spin_direction(self.__max_index) ## predct next 5 steps
+            self.show_spin_direction(self.__max_index) ## predct next 5 steps
+            #self.pub_prediction()
             self.filled_pred_result()
             #print(self.__tmp_prediction)
 
@@ -163,10 +160,27 @@ class Listener:
 
     def calculate_error(self):
         error = self.__input_balls[5:, :, :] - self.__predction_balls[:-1, :, :]
+        #error = error.astype('float')
+        #print("shape of error = ", error.shape)
         res = np.zeros((error.shape[0], 1))
+        axis = np.linspace(5, error.shape[0]+5, error.shape[0])
+        axis = axis.reshape(axis.shape[0], 1)
+        #print("shape of res = ", res.shape)
+        #print("shape of axis", axis.shape)
         for i in range(error.shape[0]):
-            res[i] = np.power(error[i, :, :], 2)
+            error = np.abs(error)
+            res[i] = np.sum(error[i, :, :])
             res[i] = res[i]**(1/2)
+        #self.draw()
+        plt.clf()
+        plt.plot(axis, res)
+        plt.scatter(axis, res)
+        plt.grid(True)
+        plt.title('Error between visual measurement and model prediction')
+        plt.xlabel('Number of updates')
+        plt.ylabel('Error')
+        plt.pause(0.00000000001)
+        plt.gcf()
 
     def callback(self, data):
         a = data.data
@@ -179,23 +193,16 @@ class Listener:
                 self.classification()
             if (self.__tmp.shape[0] > 90):
                 self.show_spin_direction(self.__max_index)
-            self.pub_prediction()
+            #self.pub_prediction()
             self.filled_pred_result()
             
         else:
             if (self.__padding_done == True):
-                #print("sssss")
                 self.final_padding()
-                self.pub_prediction()
-                self.filled_pred_result()
-            print("visual measurement points")
-            print(self.__input_balls)
-            print("prediction points")
-            print(self.__predction_balls)
-            print("vis shape = ", self.__input_balls.shape)
-            print("ped shape = ", self.__predction_balls.shape)
+                print("vis shape = ", self.__input_balls.shape)
+                print("ped shape = ", self.__predction_balls.shape)
+                self.calculate_error()
             self.__padding_done = False
-            #self.__cnt = 0
             self.__tmp_classification = np.zeros([1,90])
         '''
         if (a[0] == 1):
@@ -267,7 +274,9 @@ class Listener:
 
 
 if __name__ == '__main__':
-    rospy.init_node('classifier_test')
-    print("init node classifier_test.py")
+    plt.ion()
+    rospy.init_node('classifier_test_60hz')
+    #plt.ion()
+    print("init node classifier_test_60hz.py")
     Listener()
     rospy.spin()
