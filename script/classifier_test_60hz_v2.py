@@ -22,16 +22,17 @@ class Listener:
         self.__sub = rospy.Subscriber("/visual_coordinate", Float32MultiArray, self.callback)
         #self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
         self.__tmp = cp.zeros([1,3])
-        self.__tmpp = cp.zeros([1,5,3])
-        self.__tmp_classification = cp.zeros([1,90])
-        self.__a2 = cp.zeros((1,3))
-        self.__input_balls = cp.zeros((5,3))
+        self.__arr_classification = cp.zeros([1,90])
+        self.__vis_point = cp.zeros((1,3))
+        self.__vis_balls = cp.zeros((5,3))
         self.__predction_balls = cp.zeros((1,5,3))
-        self.__tmp_prediction = cp.zeros([1,15])
+        self.__arr_prediction = cp.zeros([1,15])
         self.__padding_done = False
         self.__cnt = 5
         self.__max_index = 0
-        self.__classification_done = False
+        self.__hitting_point = -45
+        self.__hitting_timimg = 0
+        self.__possible_point = cp.zeros((1,3))
         self.__pred = cp.zeros([1,5,3])
         self.__time = 0.016667
         self.__delta_T = 0.016667
@@ -52,42 +53,42 @@ class Listener:
     def top5(self):
         print("top spin speed 5")
         with graph.as_default():
-            self.__pred = self.__pred_top5.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_top5.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def top6(self):
         print("top spin speed 6")
         with graph.as_default():
-            self.__pred = self.__pred_top6.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_top6.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def left5(self):
         print("left spin speed 5")
         with graph.as_default():
-            self.__pred = self.__pred_left5.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_left5.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def left6(self):
         print("left spin speed 6")
         with graph.as_default():
-            self.__pred = self.__pred_left6.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_left6.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def right5(self):
         print("right spin speed 5")
         with graph.as_default():
-            self.__pred = self.__pred_right5.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_right5.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def right6(self):
         print("right spin speed 6")
         with graph.as_default():
-            self.__pred = self.__pred_right6.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_right6.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def back5(self):
         print("back spin speed 5")
         with graph.as_default():
-            self.__pred = self.__pred_back5.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_back5.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
     def back6(self):
         print("back spin speed 6")
         with graph.as_default():
-            self.__pred = self.__pred_back6.predict(cp.asnumpy(self.__tmp_prediction.reshape(1,5,3)))
+            self.__pred = self.__pred_back6.predict(cp.asnumpy(self.__arr_prediction.reshape(1,5,3)))
         #print(self.__pred)
 
     def show_spin_direction(self, max_index):
@@ -95,13 +96,13 @@ class Listener:
         dictionary = {0:self.top5, 1:self.top6, 2:self.left5, 3:self.left6, 4:self.right5, 5:self.right6, 6:self.back5, 7:self.back6}
         funcToCall = dictionary[max_index]
         funcToCall()
+        self.find_hitting_point()
 
     
     def classification(self):
         ## call classifier
-        #self.__tmp_classification = self.__tmp_classification.reshape(1,30,3)
         with graph.as_default():
-            classes = self.__classifier.predict(cp.asnumpy(self.__tmp_classification.reshape(1,30,3)))
+            classes = self.__classifier.predict(cp.asnumpy(self.__arr_classification.reshape(1,30,3)))
         ## figure out which direction is
         self.__max_index = np.argmax(classes)
         print("number of input balls = ", self.__cnt)
@@ -112,185 +113,145 @@ class Listener:
     def padding(self):
         # if __tmp is empty, init array
         if (self.__padding_done == False):
-            self.__tmp = self.__a2 ## pad first point
+            self.__tmp = self.__vis_point ## pad first point
             self.__padding_done = True
-            #print(self.__tmp.shape)
         else:
         # if __tmp is not empty, then filled array
-            self.__tmp = cp.hstack((self.__tmp, self.__a2))
-            #print("tmp shape=",self.__tmp.shape)
-            #self.__tmp = np.append(self.__tmp, self.__a2) ## colect visual measurement points
-            #print(self.__tmp.shape)
+            self.__tmp = cp.hstack((self.__tmp, self.__vis_point))
             if (self.__tmp.shape[1] == 15): ## when colect 5 balls
-                #self.__tmpp = self.__tmp.reshape(1,5,3)
-                self.__tmp_classification[:,:self.__tmp.shape[1]] = self.__tmp ## asigne to classification input array
-                #self.__input_balls = self.__tmpp.reshape(1,5,3) ## visual measurement point for calculate error
-                self.__input_balls = self.__tmp.reshape(1,5,3)
-                self.__tmp_prediction[:,:] = self.__tmp ## for predct next 5 steps
+                self.__arr_classification[:,:self.__tmp.shape[1]] = self.__tmp ## asigne to classification input array
+                self.__vis_balls = self.__tmp.reshape(1,5,3)
+                self.__arr_prediction[:,:] = self.__tmp ## for predct next 5 steps
             if (self.__tmp.shape[1] > 15): ## when colect over 5 balls
-                #self.__tmpp = cp.vstack((self.__tmpp,self.__tmp[self.__tmp.shape[1]-15:])) ## append visual measurement point
-                self.__input_balls = cp.vstack((self.__input_balls, self.__tmp[:,self.__tmp.shape[1]-15:].reshape(1,5,3)))
-                #print(self.__tmpp.shape)
-                #self.__input_balls = self.__tmpp.reshape((self.__tmpp.shape[0], 5, 3)) ## visual measurement point for calculate error
-                self.__tmp_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-15:] ## rolling visual measurement for predct next 5 steps
+                self.__vis_balls = cp.vstack((self.__vis_balls, self.__tmp[:,self.__tmp.shape[1]-15:].reshape(1,5,3))) ## visual measurement point for calculate error
+                self.__arr_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-15:] ## rolling visual measurement for predct next 5 steps
                 if (self.__tmp.shape[1] <= 90): ## when colect under 31 balls
-                    self.__tmp_classification[:,:self.__tmp.shape[1]] = self.__tmp ## still asigne to classification input array
+                    self.__arr_classification[:,:self.__tmp.shape[1]] = self.__tmp ## still asigne to classification input array
                 else:
                     self.__cnt = 5
-            #print(self.__tmp_prediction)
+            #print(self.__arr_prediction)
 
     def pub_prediction(self):
-        #self.__pred = self.__pred.reshape(15,1)
         self.__pred = self.__pred.astype('float32')
         self.__pred_msg.data = self.__pred.reshape(15,1)
         self.__pub.publish(self.__pred_msg)
 
     def final_padding(self):
-        #self.__tmp = self.__tmp.reshape(1, self.__tmp.shape[0])
-        #print("dddddddd")
         for i in range(4): ## padding zeros 4 times
-            #self.__tmp = self.__tmp.reshape(1, self.__tmp.shape[0])
+            print("Time = ", self.__time)
+            print("visual measurement = ", self.__vis_point)
             self.__tmp = cp.asnumpy(self.__tmp)
             self.__tmp = sequence.pad_sequences(self.__tmp, maxlen=(self.__tmp.shape[1]+3), padding='post', dtype='float32')
-            #print("__tmp = ",self.__tmp)
             self.__tmp = cp.array(self.__tmp)
-            #self.__tmpp = cp.vstack((self.__tmpp,self.__tmp[:,self.__tmp.shape[1]-15:]))
-            #self.__input_balls = self.__tmpp.reshape((self.__tmpp.shape[0], 5, 3))
-            self.__input_balls = cp.vstack((self.__input_balls, self.__tmp[:,self.__tmp.shape[1]-15:].reshape(1,5,3)))
-            self.__tmp_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-15:] ## rolling visual measurement for predct next 5 steps
-            #print("__tmp_pred = ",self.__tmp_prediction)
-            #self.show_spin_direction(self.__max_index) ## predct next 5 steps
-            #self.pub_prediction()
+
+            self.__vis_balls = cp.vstack((self.__vis_balls, self.__tmp[:,self.__tmp.shape[1]-15:].reshape(1,5,3)))
+            self.__arr_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-15:] ## rolling visual measurement for predct next 5 steps
+            self.show_spin_direction(self.__max_index) ## predct next 5 steps
+            #print("final pred = ", self.__pred)
+            #self.pub_prediction() ## publish result to topic
             self.filled_pred_result()
-            #print(self.__tmp_prediction)
+            #self.find_hitting_point()
+            self.__time += self.__delta_T
 
     def filled_pred_result(self):
         if (self.__tmp.shape[1] == 15):
-            self.__predction_balls = self.__pred
+            self.__predction_balls = cp.array(self.__pred)
         if (self.__tmp.shape[1] > 15):
-            self.__predction_balls = cp.vstack((self.__predction_balls, self.__pred))
+            self.__predction_balls = cp.vstack((self.__predction_balls, cp.array(self.__pred)))
+
+    def find_hitting_point(self):
+        #print("call find hitting point")
+        #if (self.__pred[:,4,1] < self.__hitting_point):
+            #w1 = (self.__pred[:,4,1]-self.__hitting_point)/(self.__pred[:,4,1]-self.__pred[:,3,1])
+            #w2 = 1 - w1
+            #self.__possible_point = w1*self.__pred[:,3,1] + w2*self.__pred[:,4,1]
+        self.__pred = cp.array(self.__pred)
+        for i in range(4):
+            if (self.__pred[:,i+1,1] < self.__hitting_point):
+                print("count down ", i+2)
+                w1 = (self.__pred[:,i+1,1]-self.__hitting_point)/(self.__pred[:,i+1,1]-self.__pred[:,i,1])
+                w2 = 1 - w1
+                self.__possible_point = w1*self.__pred[:,i,:] + w2*self.__pred[:,i+1,:]
+                print("hitting point = ", self.__possible_point)
+                self.__hitting_timimg = self.__time + (i+1+w1)*self.__delta_T
+                print("hitting timimg = ", self.__hitting_timimg)
+                print("\n")
+            if ((i == 0) and (self.__pred[:,0,1] < self.__hitting_point)):
+                self.__vis_point = cp.array(self.__vis_point)
+                print("count down ", i+1)
+                w1 = (self.__hitting_point-self.__vis_point[:,1])/(self.__pred[:,0,1]-self.__vis_point[:,1])
+                #print("w2 = ", (1-w1))
+                print("pred = ", self.__pred[:,0,:])
+                self.__possible_point = (1-w1)*self.__vis_point.reshape(1,1,3) + w1*self.__pred[:,0,:]
+                print("hitting point = ", self.__possible_point)
+                self.__hitting_timimg = self.__time + w1*self.__delta_T
+                print("hitting timimg = ", self.__hitting_timimg)
+                print("\n")
 
     def calculate_error(self):
-        #error = self.__input_balls[5:, :, :] - self.__predction_balls[:-1, :, :]
-        error = self.__input_balls[5:,:,:] - self.__predction_balls[:self.__predction_balls.shape[0]-5, :, :]
-        #error = error.astype('float')
-        #print("shape of error = ", error.shape)
+        error = self.__vis_balls[5:,:,:] - self.__predction_balls[:self.__predction_balls.shape[0]-5, :, :]
+        error = error[:error.shape[0]-4,:,:]
         res = cp.zeros((error.shape[0], 1))
-        axis = cp.linspace(5, error.shape[0]+5, error.shape[0])
+        axis = cp.linspace(1, error.shape[0], error.shape[0])
         axis = axis.reshape(axis.shape[0], 1)
-        #print("shape of res = ", res.shape)
-        #print("shape of axis", axis.shape)
-        for i in range(error.shape[0]):
-            error = cp.abs(error)
-            res[i] = cp.sum(error[i, :, :])
-            res[i] = res[i]**(1/2)
-        #self.draw()
+        #error = cp.abs(error)
+        ## .XXXX
+        error = cp.round_(error, decimals=4)
+        ## calculate error by MES
+        error = cp.power(error, 2)
+        #for i in range(error.shape[0]):
+            #res[i] = cp.sum(error[i,:,:])
+            #print("i = ", i)
+            #print("vis = ", self.__vis_balls[i+5,:,:])
+            #print("pred = ", self.__predction_balls[i,:,:])
+            #print("err = ", error[i,:,:])
+        res = cp.sum(error, axis=-1)
+        res = cp.sum(res, axis=-1)
+        res = res/15
+
+        ## plot error
         plt.clf()
-        plt.plot(cp.asnumpy(axis), cp.asnumpy(res))
+        plt.plot(cp.asnumpy(axis), cp.asnumpy(res.reshape(res.shape[0],1)))
         plt.scatter(cp.asnumpy(axis), cp.asnumpy(res))
         plt.grid(True)
         plt.title('Error between visual measurement and model prediction')
-        plt.xlabel('Number of updates')
+        plt.xlabel('update times')
         plt.ylabel('Error')
         plt.pause(0.00000000001)
         plt.gcf()
 
     def callback(self, data):
         a = data.data
-        self.__a2 = cp.array([a[1:]])
+        self.__vis_point = cp.array([a[1:]])
+        #print(self.__vis_point)
 
         #print("time = ", self.__time)
         if (a[0] == 1):
+            print("Time = ", self.__time)
+            print("visual measurement = ", self.__vis_point)
             self.padding()
-            #print("__tmp = ",self.__tmp)
-            #print("__tmp_pred = ",self.__tmp_prediction)
-            #print(self.__input_balls)
             if ((self.__tmp.shape[1] >= 15) and (self.__tmp.shape[1] <= 90)):
                 self.classification()
+                #self.find_hitting_point()
             if (self.__tmp.shape[1] > 90):
                 self.show_spin_direction(self.__max_index)
+                #self.find_hitting_point()
             self.filled_pred_result()
-            #print(self.__input_balls.shape)
+            self.__time += self.__delta_T
             
         else:
             if (self.__padding_done == True):
                 self.final_padding()
-                print("vis shape = ", self.__input_balls.shape)
-                print(self.__input_balls)
-                print("ped shape = ", self.__predction_balls.shape)
-                print(self.__predction_balls)
+                #print("vis shape = ", self.__vis_balls.shape)
+                #print(self.__vis_balls)
+                #print("ped shape = ", self.__predction_balls.shape)
+                #print(self.__predction_balls)
                 self.calculate_error()
-                #print(self.__input_balls.shape)
+                #print("prediction = ", self.__predction_balls)
+                self.__time = 0.016667
             self.__padding_done = False
-            self.__tmp_classification = cp.zeros([1,90])
-        '''
-        if (a[0] == 1):
-            print("time = ", self.__time)
-
-            if (self.__padding_done == False):
-                if ((self.__index+3) < (self.__n_balls*3+1)):
-                    self.__tmp[:,self.__index:self.__index+3] = a2
-                    self.__index += 3
-                    self.__padding_done = False
-                    #print("aaaaa")
-                else:
-                    self.__padding_done = True
-                    #print("aaaaa123")
-                    self.__done = True
-
-            if ((self.__padding_done == True) and (self.__classification_done == False)):
-                ## do classification
-                self.__index = self.__index + 1
-                self.__tmp_classification = self.__tmp.reshape(1,self.__n_balls, 3)
-                self.__tmp_classification = self.__tmp_classification.astype('float32')
-                self.classification()
-                self.__classification_done = True
-                #print("bbbbb")
-            
-            if ((self.__classification_done == True)):
-                ## prediction
-                #print("call prediction")
-                if (self.__done == False):
-                    #print("ggggg")
-                    ## update 
-                    self.__tmp_prediction[0,:4,:] = self.__tmp_prediction[0,1:,:]
-                    self.__tmp_prediction[0,4,:] = a2
-                    print(self.__tmp_prediction)
-                if (self.__done == True):
-                    #print("ddddd")
-                    ## get last five balls by visual measurement
-                    self.__tmpp[0,:] = self.__tmp[0,18:]
-                    self.__tmpp = self.__tmpp.reshape(1,5,3)
-                    self.__tmp_prediction = self.__tmpp
-                    self.__done = False
-                    print(self.__tmp_prediction)
-
-                self.show_spin_direction(self.__max_index)
-                self.__pred = self.__pred.reshape(15,1)
-                self.__pred = self.__pred.astype('float32')
-                self.__pred_msg.data = self.__pred
-                self.__pub.publish(self.__pred_msg)
-                self.__rate.sleep()
-                self.__pred = self.__pred.reshape(1,5,3)
-
-                #self.__cnt += 1
-            self.__time = self.__time + self.__delta_T
-
-
-        else:
-            self.__tmp = np.zeros([1,self.__n_balls*3])
-            self.__tmpp = np.zeros([1,15])
-            self.__index = 0
-            self.__classification_done = False
-            self.__padding_done = False
-            self.__done = False
-            self.__time = 0.016667
-            #print("ccccc")
-        '''
-
-
-
-
+            self.__arr_classification = cp.zeros([1,90])
+            self.__vis_balls = cp.zeros((5,3))
 
 if __name__ == '__main__':
     plt.ion()
