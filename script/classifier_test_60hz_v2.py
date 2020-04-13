@@ -38,15 +38,15 @@ class Listener:
         self.__delta_T = 0.016667
         #self.__pred_msg = Float32MultiArray()
         #self.__rate = rospy.Rate(100)
-        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/classification_30ball_20200404_filled_v2')
-        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_top5')
-        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_top6')
-        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_left5')
-        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_left6')
-        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_right5')
-        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_right6')
-        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_back5')
-        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/prediction_back6')
+        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/classification_30ball_20200404_filled_v2')
+        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_top5')
+        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_top6')
+        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_left5')
+        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_left6')
+        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_right5')
+        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_right6')
+        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_back5')
+        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_MSE/prediction_back6')
         print("already load model")
 
     ## print spin direction and speed
@@ -172,20 +172,26 @@ class Listener:
                 w1 = (self.__pred[:,i+1,1]-self.__hitting_point)/(self.__pred[:,i+1,1]-self.__pred[:,i,1])
                 w2 = 1 - w1
                 self.__possible_point = w1*self.__pred[:,i,:] + w2*self.__pred[:,i+1,:]
-                print("hitting point = ", self.__possible_point)
+                #print("hitting point = ", self.__possible_point)
                 self.__hitting_timimg = self.__time + (i+1+w1)*self.__delta_T
-                print("hitting timimg = ", self.__hitting_timimg)
+                #print("hitting timimg = ", self.__hitting_timimg)
+                #print("\n")
+                self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
+                print("hitting timing and position = ", self.__possible_point)
                 print("\n")
             if ((i == 0) and (self.__pred[:,0,1] < self.__hitting_point)):
                 self.__vis_point = cp.array(self.__vis_point)
                 print("count down ", i+1)
                 w1 = (self.__hitting_point-self.__vis_point[:,1])/(self.__pred[:,0,1]-self.__vis_point[:,1])
                 #print("w2 = ", (1-w1))
-                print("pred = ", self.__pred[:,0,:])
+                #print("pred = ", self.__pred[:,0,:])
                 self.__possible_point = (1-w1)*self.__vis_point.reshape(1,1,3) + w1*self.__pred[:,0,:]
-                print("hitting point = ", self.__possible_point)
+                #print("hitting point = ", self.__possible_point)
                 self.__hitting_timimg = self.__time + w1*self.__delta_T
-                print("hitting timimg = ", self.__hitting_timimg)
+                #print("hitting timimg = ", self.__hitting_timimg)
+                #print("\n")
+                self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
+                print("hitting timing and position = ", self.__possible_point)
                 print("\n")
 
     def calculate_error(self):
