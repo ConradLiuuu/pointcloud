@@ -131,7 +131,7 @@ public:
         b_L2R << 879.1440, 12.3325, -20.9244;
         b_L2W << -699.620721, 450.703227, 2042.738938;
         R_W2L << 0.999942, 0.001900, -0.010572, -0.009106, -0.372230, -0.928096, -0.005698, 0.928139, -0.372191;
-        compesation_value << -5.717688, -0.331069, 21.301289;
+        compesation_value << -2.42, 5.1723, 30.0654;
         
         d = R_R2L*b_L2R;
 
@@ -145,7 +145,7 @@ public:
         //z2 = 0;
         i = 0;
 
-        cloud.width  = 1000;
+        cloud.width  = 100000;
         cloud.height = 1;
         cloud.points.resize(cloud.width * cloud.height);
 
@@ -181,9 +181,9 @@ public:
 
                     h_W = R_W2L.transpose() * (h_L-b_L2W) - compesation_value;
 
-                    hx = h_W(0) / 10;
-                    hy = h_W(1) / 10;
-                    hz = h_W(2) / 10;
+                    hx = h_W(0)/10;
+                    hy = h_W(1)/10;
+                    hz = h_W(2)/10;
                     //cout << hx << ", " << hy << ", " << hz << endl;
 
                     //y1 = int(h_W(1));
@@ -268,7 +268,7 @@ public:
             }
             
         }
-        
+        //myfile.close();
     }
 
 

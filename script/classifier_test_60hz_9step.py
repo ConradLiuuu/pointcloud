@@ -31,7 +31,8 @@ class Listener:
         self.__arr_pred_possible = cp.zeros((1,4))
         self.__diff = cp.zeros([1,3])
         self.__padding_done = False
-        self.__cnt = 5
+        self.__cnt = 1
+        self.__num = 1
         self.__max_index = 0
         self.__find_possible_point = False
         self.__cal_possible_point = False
@@ -41,53 +42,69 @@ class Listener:
         self.__hitting_timimg = 0
         self.__possible_point = cp.zeros((1,4))
         self.__pred = cp.zeros([1,self.__time_step,3])
+        self.__pred_for_offline = cp.zeros([1,self.__time_step,3])
         self.__time = 0.016667
         self.__delta_T = 0.016667
         self.__anchor = 0
-        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/classification_30ball_20200404_filled_v2')
-        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_top5')
-        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_top6')
-        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_left5')
-        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_left6')
-        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_right5')
-        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_right6')
-        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_back5')
-        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_back6')
-        self.__model = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_256/prediction_back6')
+        self.__direction = 'top5'
+        self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/classification_30ball_20200404_filled_v2')
+        rospy.loginfo("loaded classification model")
+        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_top5')
+        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_top6')
+        rospy.loginfo("loaded top prediction model")
+        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_left5')
+        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_left6')
+        rospy.loginfo("loaded left prediction model")
+        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_right5')
+        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_right6')
+        rospy.loginfo("loaded right prediction model")
+        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_back5')
+        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_back6')
+        rospy.loginfo("loaded back prediction model")
+        self.__csv_path = '/home/lab606a/catkin_ws/src/pointcloud/offline/'
         rospy.loginfo("already load model")
 
     ## print spin direction and speed
     def top5(self):
         print("top spin speed 5")
         self.__model = self.__pred_top5
+        self.__direction = 'top5_'
 
     def top6(self):
         print("top spin speed 6")
         self.__model = self.__pred_top6
+        self.__direction = 'top6_'
 
     def left5(self):
         print("left spin speed 5")
         self.__model = self.__pred_left5
+        self.__direction = 'left5_'
 
     def left6(self):
         print("left spin speed 6")
         self.__model = self.__pred_left6
+        self.__direction = 'left6_'
 
     def right5(self):
         print("right spin speed 5")
         self.__model = self.__pred_right5
+        self.__direction = 'right5_'
 
     def right6(self):
         print("right spin speed 6")
         self.__model = self.__pred_right6
+        self.__direction = 'right6_'
 
     def back5(self):
         print("back spin speed 5")
         self.__model = self.__pred_back5
+        self.__direction = 'back5_'
 
     def back6(self):
         print("back spin speed 6")
         self.__model = self.__pred_back6
+        self.__direction = 'back6_'
 
     def append_pred(self): ## Exhaustive
         with graph.as_default():
@@ -101,6 +118,7 @@ class Listener:
                 self.__find_possible_point = True
                 self.__anchor = self.__pred.shape[0]-1
                 print("count down = ", int(count_down))
+                self.__pred_for_offline = self.__pred
 
             else: ## predict next time step
                 self.__pred = cp.vstack((self.__pred, cp.zeros([1,self.__time_step,3])))
@@ -108,12 +126,14 @@ class Listener:
                     self.__pred[self.__pred.shape[0]-1,:,:] = cp.array(self.__model.predict(cp.asnumpy(self.__pred[self.__pred.shape[0]-2,:,:].reshape(1,self.__time_step,3)), verbose=1)).reshape(self.__time_step,3)
                 if (self.__pred.shape[0] >= 8):
                     self.__pred = cp.zeros([1,self.__time_step,3])
+                    self.__find_possible_point = True
                 
     def update_prediction(self):
         with graph.as_default():
             self.__pred[0,:,:] = cp.array(self.__model.predict(cp.asnumpy(self.__arr_prediction.reshape(1,self.__time_step,3)), verbose=1)).reshape(self.__time_step,3)
             for i in range(1, self.__pred.shape[0]):
                 self.__pred[i,:,:] = cp.array(self.__model.predict(cp.asnumpy(self.__pred[i-1,:,:].reshape(1,self.__time_step,3)), verbose=1)).reshape(self.__time_step,3)
+            self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
 
     def calculate_hitting_point(self, arr):
         #print("cnt = ", self.__cnt)
@@ -129,14 +149,20 @@ class Listener:
                     count_down = row + self.__anchor*9
                     print("count down = ", count_down)
                     if (row == 0):
-                        #print("case a1")
-                        w1 = (arr[self.__anchor,row,1]-self.__hitting_point) / (arr[self.__anchor,row,1]-arr[self.__anchor-1,self.__time_step-1,1])
-                        self.__possible_point = w1*arr[self.__anchor-1,self.__time_step-1,:] + (1-w1)*arr[self.__anchor,row,:]
+                        print("case a1")
+                        self.__vis_point = cp.array(self.__vis_point)
+                        w1 = (self.__hitting_point-self.__vis_point[:,1]) / (arr[self.__anchor,row,1]-self.__vis_point[:,1])
+                        self.__possible_point = w1*arr[self.__anchor,row,:] + (1-w1)*self.__vis_point.reshape(1,1,3)
                         self.__hitting_timimg = self.__time + (w1+count_down)*self.__delta_T
                         self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
+
+                        #w1 = (arr[self.__anchor,row,1]-self.__hitting_point) / (arr[self.__anchor,row,1]-arr[self.__anchor-1,self.__time_step-1,1])
+                        #self.__possible_point = w1*arr[self.__anchor-1,self.__time_step-1,:] + (1-w1)*arr[self.__anchor,row,:]
+                        #self.__hitting_timimg = self.__time + (w1+count_down)*self.__delta_T
+                        #self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
                         print("hitting timing and position = ", self.__possible_point)
                     else:
-                        #print("case a2")
+                        print("case a2")
                         w1 = (arr[self.__anchor,row,1]-self.__hitting_point) / (arr[self.__anchor,row,1]-arr[self.__anchor,row-1,1])
                         self.__possible_point = w1*arr[self.__anchor,row-1,:] + (1-w1)*arr[self.__anchor,row,:]
                         self.__hitting_timimg = self.__time + (w1+count_down)*self.__delta_T
@@ -148,7 +174,7 @@ class Listener:
                     count_down = row + self.__anchor*9
                     print("count down = ", count_down)
                     if (row == 0):
-                        #print("case b1")
+                        print("case b1")
                         if (self.__diff[:,1] > 0):
                             w1 = (arr[self.__anchor,row,1]-self.__hitting_point) / self.__diff[:,1]
                             if w1 < 1:
@@ -157,7 +183,7 @@ class Listener:
                                 self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
                                 print("hitting timing and position = ", self.__possible_point)
                     else:
-                        #print("case b2")
+                        print("case b2")
                         self.__diff = arr[self.__anchor,row-1,:]-arr[self.__anchor,row,:]
                         self.__diff = self.__diff.reshape(1,3)
                         w1 = (arr[self.__anchor,row,1]-self.__hitting_point) / self.__diff[:,1]
@@ -166,6 +192,9 @@ class Listener:
                             self.__hitting_timimg = self.__time + (count_down+1+w1)*self.__delta_T
                             self.__possible_point = cp.hstack((self.__hitting_timimg, self.__possible_point.reshape(3,)))
                             print("hitting timing and position = ", self.__possible_point)
+                else:
+                    self.__possible_point = self.__possible_point
+
                 self.__cal_possible_point = True
                 #self.__cnt += 1
                 if (self.__arr_pred_possible.shape[0] == 1) and (int(self.__arr_pred_possible[0,2]) == 0):
@@ -173,7 +202,7 @@ class Listener:
                 else:
                     self.__arr_pred_possible = cp.vstack((self.__arr_pred_possible, self.__possible_point.reshape(1,4)))
             else:
-                if (self.__anchor-1) >= 0:
+                if ((self.__anchor-1) >= 0) and (abs(float(cp.min(arr[self.__anchor,:,:]))-self.__hitting_point) >= 22.5):
                     self.__anchor = self.__anchor -1
                     #print("case c1")
                 else:
@@ -215,26 +244,41 @@ class Listener:
         ## show result
         if (self.__cnt >= 9):
             self.show_spin_direction(self.__max_index)
-        self.__cnt += 1
+        #self.__cnt += 1
 
     def padding(self):
         # if __tmp is empty, init array
         if (self.__padding_done == False):
             self.__tmp = self.__vis_point ## pad first point
             self.__padding_done = True
+            self.__vis_balls = self.__vis_point.reshape(1,3)
         else:
         # if __tmp is not empty, then filled array
             self.__tmp = cp.hstack((self.__tmp, self.__vis_point))
+            self.__vis_balls = cp.vstack((self.__vis_balls, self.__vis_point))
             if (self.__tmp.shape[1] == 15): ## when colect 5 balls
                 self.__arr_classification[:,:self.__tmp.shape[1]] = self.__tmp ## asigne to classification input array
             if (self.__tmp.shape[1] == 27):
-                self.__vis_balls = self.__tmp.reshape(1,self.__time_step,3)
+                #self.__vis_balls = self.__tmp.reshape(1,self.__time_step,3)
                 self.__arr_prediction[:,:] = self.__tmp ## for predct next 5 steps
             if (self.__tmp.shape[1] > 27): ## when colect over 5 balls
-                self.__vis_balls = cp.vstack((self.__vis_balls, self.__tmp[:,self.__tmp.shape[1]-(self.__time_step*3):].reshape(1,self.__time_step,3))) ## visual measurement point for calculate error
+                #self.__vis_balls = cp.vstack((self.__vis_balls, self.__tmp[:,self.__tmp.shape[1]-(self.__time_step*3):].reshape(1,self.__time_step,3))) ## visual measurement point for calculate error
                 self.__arr_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-(self.__time_step*3):] ## rolling visual measurement for predct next 5 steps
                 if (self.__tmp.shape[1] <= 90): ## when colect under 31 balls
                     self.__arr_classification[:,:self.__tmp.shape[1]] = self.__tmp ## still asigne to classification input array
+
+    def save_data(self):
+        visurement_balls = cp.asnumpy(self.__vis_balls)
+        pred_trajs = cp.asnumpy(self.__pred_for_offline.reshape(self.__pred_for_offline.shape[0]*self.__pred_for_offline.shape[1], self.__pred_for_offline.shape[2]))
+
+        df_vis = pd.DataFrame(data=visurement_balls)
+        df_pred = pd.DataFrame(data=pred_trajs)
+
+        vis_name = self.__csv_path + 'visurement' + str(self.__num) + '.csv'
+        pred_name = self.__csv_path + 'prediction' + str(self.__num) + '.csv'
+
+        df_vis.to_csv(vis_name, header=0, index=0)
+        df_pred.to_csv(pred_name, header=0, index=0)
 
     def final_padding(self):
         for i in range((self.__time_step-1)): ## padding zeros 4 times
@@ -250,6 +294,11 @@ class Listener:
             self.__time += self.__delta_T
     
     def plot_error(self):
+        self.ax[0,0].remove()
+        self.ax[0,1].remove()
+        self.ax[1,0].remove()
+        self.ax[1,1].remove()
+        #self.fig.clf()
         self.__arr_pred_possible = cp.round_(self.__arr_pred_possible, 4)
         self.__vis_hitting_point = cp.round_(self.__vis_hitting_point, 4)
         #self.__vis_hitting_point = self.__vis_hitting_point.reshape(1,self.__vis_hitting_point.shape[0])
@@ -260,36 +309,37 @@ class Listener:
         z = self.__arr_pred_possible[:,3]
         Euclidean_vis = cp.sqrt(cp.sum(cp.power(self.__vis_hitting_point[1:],2)))
         Euclidean_pred = cp.sqrt(cp.sum(cp.power(self.__arr_pred_possible[:,1:],2), axis=1))
+        
+        #fig, ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
 
-        fig, ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        self.ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green')
+        self.ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
+        self.ax[0,0].scatter(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
+        self.ax[0,0].grid(True)
+        self.ax[0,0].set_xlabel('update times')
+        self.ax[0,0].set_ylabel('hitting timimg (sec)')
 
-        ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green')
-        ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
-        ax[0,0].scatter(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
-        ax[0,0].grid(True)
-        ax[0,0].set_xlabel('update times')
-        ax[0,0].set_ylabel('hitting timimg')
+        self.ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*Euclidean_vis), color='green')
+        self.ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
+        self.ax[0,1].scatter(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
+        self.ax[0,1].grid(True)
+        self.ax[0,1].set_xlabel('update times')
+        self.ax[0,1].set_ylabel('Euclidean distance (cm)')
 
-        ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*Euclidean_vis), color='green')
-        ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
-        ax[0,1].scatter(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
-        ax[0,1].grid(True)
-        ax[0,1].set_xlabel('update times')
-        ax[0,1].set_ylabel('Euclidean distance')
+        self.ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[1]), color='green')
+        self.ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
+        self.ax[1,0].scatter(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
+        self.ax[1,0].grid(True)
+        self.ax[1,0].set_xlabel('update times')
+        self.ax[1,0].set_ylabel('X-coordinate (cm)')
 
-        ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[1]), color='green')
-        ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
-        ax[1,0].scatter(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
-        ax[1,0].grid(True)
-        ax[1,0].set_xlabel('update times')
-        ax[1,0].set_ylabel('Coordinate X')
-
-        ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[3]), color='green')
-        ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
-        ax[1,1].scatter(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
-        ax[1,1].grid(True)
-        ax[1,1].set_xlabel('update times')
-        ax[1,1].set_ylabel('Coordinate Z')
+        self.ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[3]), color='green')
+        self.ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
+        self.ax[1,1].scatter(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
+        self.ax[1,1].grid(True)
+        self.ax[1,1].set_xlabel('update times')
+        self.ax[1,1].set_ylabel('Z-Coordinate (cm)')
         '''
         #plt.clf()
         plt.figure(figsize=(10.24,7.2))
@@ -327,12 +377,23 @@ class Listener:
 
         plt.pause(0.00000000001)
         '''
-        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(rospy.get_time()) + '.png'
+        #name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + self.__direction + str(rospy.get_time()) + '.png'
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + self.__direction + str(self.__num) + '.png'
         
-        fig.savefig(name)
+        self.fig.savefig(name)
+        #self.fig.pause(0.001)
+        #plt.savefig(name)
         #plt.clf()
-        #plt.gcf()
-        #plt.show()
+        
+        #self.fig.clf()
+        #self.ax[0,0].remove()
+        #self.ax[0,1].remove()
+        #self.ax[1,0].remove()
+        #self.ax[1,1].remove()
+
+
+        #self.fig.clf()
+        #self.fig.show()
 
     def callback(self, data):
         a = data.data
@@ -349,7 +410,6 @@ class Listener:
 
         if (a[0] == 1):
             print("\nTime = ", self.__time) ## show current time
-            #rospy.loginfo("\nTime = %f"% self.__time)
             print("visual measurement = ", self.__vis_point) ## show visual measurement coordinate
             self.padding() ## colect 5 balls
             if ((self.__tmp.shape[1] >= 15) and (self.__tmp.shape[1] <= 90)): ## while colect balls over 5 balls and under 30 balls
@@ -357,30 +417,32 @@ class Listener:
             if (self.__tmp.shape[1] > 90): ## while colect balls over 30 balls, stop doing classification
                 self.show_spin_direction(self.__max_index) ## skip classification doing prediction
             self.__time += self.__delta_T
+            self.__cnt += 1
             
         else:
             if (self.__padding_done == True):
-                self.final_padding() ## padding 8 times for predict final predicion coordinate
                 self.calculate_vis_hitting_point()
                 print("pred hitting point = ", self.__arr_pred_possible)
-                self.plot_error()
+                if (self.__pred_for_offline.shape[0] != 1):
+                    self.plot_error()
+                    self.save_data()
+                self.__num += 1
 
             self.__padding_done = False
             self.__arr_classification = cp.zeros([1,90])
             self.__vis_balls = cp.zeros((self.__time_step,3))
-            self.__cnt = 5
+            self.__cnt = 1
             self.__pred = cp.zeros([1,self.__time_step,3])
             self.__vis_balls2 = cp.zeros((1,4))
             self.__arr_pred_possible = cp.zeros((1,4))
-            print("pred reset")
             self.__find_possible_point = False
             self.__vis_possible_point = False
+            self.__pred_for_offline = cp.zeros([1,self.__time_step,3])
             self.__time = 0.016667 ## reset time
-            #self.__cnt = 1
 
 if __name__ == '__main__':
     rospy.init_node('classifier_test_60hz_9step')
-    plt.ion()
+    #plt.ion()
     rospy.loginfo("init node classifier_test_60hz_9step.py")
     Listener()
     rospy.spin()
