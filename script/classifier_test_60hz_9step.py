@@ -48,19 +48,19 @@ class Listener:
         self.__anchor = 0
         self.__direction = 'top5'
         self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
-        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/classification_30ball_20200404_filled_v2')
+        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/classification_30ball_20200421_64to8')
         rospy.loginfo("loaded classification model")
-        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_top5')
-        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_top6')
+        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_top5')
+        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_top6')
         rospy.loginfo("loaded top prediction model")
-        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_left5')
-        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_left6')
+        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left5')
+        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left6')
         rospy.loginfo("loaded left prediction model")
-        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_right5')
-        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_right6')
+        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_right5')
+        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_right6')
         rospy.loginfo("loaded right prediction model")
-        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_back5')
-        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9step_512/prediction_back6')
+        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_back5')
+        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_back6')
         rospy.loginfo("loaded back prediction model")
         self.__csv_path = '/home/lab606a/catkin_ws/src/pointcloud/offline/'
         rospy.loginfo("already load model")
@@ -69,42 +69,42 @@ class Listener:
     def top5(self):
         print("top spin speed 5")
         self.__model = self.__pred_top5
-        self.__direction = 'top5_'
+        self.__direction = '_top5'
 
     def top6(self):
         print("top spin speed 6")
         self.__model = self.__pred_top6
-        self.__direction = 'top6_'
+        self.__direction = '_top6'
 
     def left5(self):
         print("left spin speed 5")
         self.__model = self.__pred_left5
-        self.__direction = 'left5_'
+        self.__direction = '_left5'
 
     def left6(self):
         print("left spin speed 6")
         self.__model = self.__pred_left6
-        self.__direction = 'left6_'
+        self.__direction = '_left6'
 
     def right5(self):
         print("right spin speed 5")
         self.__model = self.__pred_right5
-        self.__direction = 'right5_'
+        self.__direction = '_right5'
 
     def right6(self):
         print("right spin speed 6")
         self.__model = self.__pred_right6
-        self.__direction = 'right6_'
+        self.__direction = '_right6'
 
     def back5(self):
         print("back spin speed 5")
         self.__model = self.__pred_back5
-        self.__direction = 'back5_'
+        self.__direction = '_back5'
 
     def back6(self):
         print("back spin speed 6")
         self.__model = self.__pred_back6
-        self.__direction = 'back6_'
+        self.__direction = '_back6'
 
     def append_pred(self): ## Exhaustive
         with graph.as_default():
@@ -378,7 +378,7 @@ class Listener:
         plt.pause(0.00000000001)
         '''
         #name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + self.__direction + str(rospy.get_time()) + '.png'
-        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + self.__direction + str(self.__num) + '.png'
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + self.__direction + '.png'
         
         self.fig.savefig(name)
         #self.fig.pause(0.001)
