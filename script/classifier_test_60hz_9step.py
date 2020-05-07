@@ -34,6 +34,8 @@ class Listener:
         self.__cnt = 1
         self.__num = 1
         self.__max_index = 0
+        self.__pred_msg = Float32MultiArray()
+        self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
         self.__find_possible_point = False
         self.__cal_possible_point = False
         self.__vis_possible_point = False
@@ -46,12 +48,13 @@ class Listener:
         self.__time = 0.016667
         self.__delta_T = 0.016667
         self.__anchor = 0
+        self.__rowww = 0
         self.__direction = 'top5'
         self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
-        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/classification_30ball_20200421_64to8')
+        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/classification_30ball_20200505_256to8')
         rospy.loginfo("loaded classification model")
-        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_top5')
-        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_top6')
+        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top5')
+        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top6')
         rospy.loginfo("loaded top prediction model")
         self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left5')
         self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left6')
@@ -118,6 +121,9 @@ class Listener:
                 self.__find_possible_point = True
                 self.__anchor = self.__pred.shape[0]-1
                 print("count down = ", int(count_down))
+                #index = cp.argmin(self.__anchor[self.__anchor,:,:])
+                #row = int((index-1)/3)
+                self.__pred[self.__anchor, row+1:, :] = 0
                 self.__pred_for_offline = self.__pred
 
             else: ## predict next time step
@@ -133,7 +139,29 @@ class Listener:
             self.__pred[0,:,:] = cp.array(self.__model.predict(cp.asnumpy(self.__arr_prediction.reshape(1,self.__time_step,3)), verbose=1)).reshape(self.__time_step,3)
             for i in range(1, self.__pred.shape[0]):
                 self.__pred[i,:,:] = cp.array(self.__model.predict(cp.asnumpy(self.__pred[i-1,:,:].reshape(1,self.__time_step,3)), verbose=1)).reshape(self.__time_step,3)
-            self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
+            '''
+            index = cp.argmin(self.__pred[self.__anchor,:,:])
+            row = int((index-1)/3)
+            if (row < 8):
+                self.__pred[self.__anchor, row+1:, :] = 0
+            if (self.__anchor != self.__pred.shape[0]-1):
+                self.__pred[self.__anchor+1:, :, :] = 0
+            if (self.__anchor == 0) and ( -10 < float(cp.min(self.__pred[self.__anchor,0,:])) < 10):
+                self.__pred[self.__anchor,0,:] = 0
+            '''
+            #self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
+            
+
+    def modify(self):
+        #index = cp.argmin(self.__pred[self.__anchor,:,:])
+        #row = int((index-1)/3)
+        if (self.__rowww < 8):
+            self.__pred[self.__anchor, self.__rowww+1:, :] = 0
+        if (self.__anchor != self.__pred.shape[0]-1):
+            self.__pred[self.__anchor+1:, :, :] = 0
+        if (self.__anchor == 0) and (self.__rowww == 0) and ( -10 < float(cp.min(self.__pred[self.__anchor,0,:])) < 10):
+            self.__pred[self.__anchor,0,:] = 0
+        self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
 
     def calculate_hitting_point(self, arr):
         #print("cnt = ", self.__cnt)
@@ -143,9 +171,13 @@ class Listener:
             print(arr[self.__anchor,:,:])
             if (-55 <= float(cp.min(arr[self.__anchor,:,:])) <= -35) and (self.__anchor >= 0):
                 #print("anchor = ", self.__anchor)
+                index = cp.argmin(arr[self.__anchor,:,:])
+                row = int((index-1)/3)
+                self.__rowww = row
                 if (-55 <= float(cp.min(arr[self.__anchor,:,:])) <= -45): ## interpolation
                     index = cp.argmin(arr[self.__anchor,:,:])
                     row = int((index-1)/3)
+                    self.__rowww = row
                     count_down = row + self.__anchor*9
                     print("count down = ", count_down)
                     if (row == 0):
@@ -171,6 +203,7 @@ class Listener:
                 elif (-45 < float(cp.min(arr[self.__anchor,:,:])) <= -40):
                     index = cp.argmin(arr[self.__anchor,:,:])
                     row = int((index-1)/3)
+                    self.__rowww = row
                     count_down = row + self.__anchor*9
                     print("count down = ", count_down)
                     if (row == 0):
@@ -196,6 +229,16 @@ class Listener:
                     self.__possible_point = self.__possible_point
 
                 self.__cal_possible_point = True
+                self.pub_prediction()
+                '''
+                if (row < 8):
+                    arr[self.__anchor, row+1:, :] = 0
+                if (self.__anchor != self.__pred.shape[0]-1):
+                    arr[self.__anchor+1:, :, :] = 0
+                if (self.__anchor == 0) and ( -10 < float(cp.min(arr[self.__anchor,0,:])) < 10):
+                    arr[self.__anchor,0,:] = 0
+                '''
+                #self.__pred_for_offline = cp.vstack((self.__pred_for_offline, arr))
                 #self.__cnt += 1
                 if (self.__arr_pred_possible.shape[0] == 1) and (int(self.__arr_pred_possible[0,2]) == 0):
                     self.__arr_pred_possible = self.__possible_point.reshape(1,4)
@@ -207,6 +250,11 @@ class Listener:
                     #print("case c1")
                 else:
                     self.__cal_possible_point = True
+    
+    def pub_prediction(self):
+        msg = self.__possible_point.astype('float32')
+        self.__pred_msg.data = msg.reshape(4,1)
+        self.__pub.publish(self.__pred_msg)
 
     def calculate_vis_hitting_point(self):
         if (-50 <= float(cp.min(self.__vis_balls2)) <= -45):
@@ -233,6 +281,7 @@ class Listener:
         elif (self.__pred.shape[0] > 1):
             self.update_prediction() ## update prediction result
             self.calculate_hitting_point(self.__pred) ## calculate hitting timimg and hitting point
+            self.modify()
 
     def classification(self):
         ## call classifier
@@ -311,6 +360,7 @@ class Listener:
         Euclidean_pred = cp.sqrt(cp.sum(cp.power(self.__arr_pred_possible[:,1:],2), axis=1))
         
         #fig, ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        
         self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
 
         self.ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green')
@@ -375,12 +425,14 @@ class Listener:
         plt.xlabel('update times')
         plt.ylabel('Coordinate Z')
 
-        plt.pause(0.00000000001)
+        #plt.pause(0.00000000001)
+        plt.show()
         '''
         #name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + self.__direction + str(rospy.get_time()) + '.png'
         name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + self.__direction + '.png'
         
         self.fig.savefig(name)
+
         #self.fig.pause(0.001)
         #plt.savefig(name)
         #plt.clf()
@@ -442,7 +494,7 @@ class Listener:
 
 if __name__ == '__main__':
     rospy.init_node('classifier_test_60hz_9step')
-    #plt.ion()
+    plt.ion()
     rospy.loginfo("init node classifier_test_60hz_9step.py")
     Listener()
     rospy.spin()

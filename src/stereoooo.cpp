@@ -75,7 +75,7 @@ private:
 
     std_msgs::Float32MultiArray coordinate;
     Publisher coor_pub = nh.advertise<std_msgs::Float32MultiArray> ("visual_coordinate", 1);
-    Publisher pcl_pub = nh.advertise<sensor_msgs::PointCloud2> ("pcl_output", 1);
+    Publisher pcl_pub = nh.advertise<sensor_msgs::PointCloud2> ("visual_output", 1);
 
     pcl::PointCloud<pcl::PointXYZ> cloud;
     sensor_msgs::PointCloud2 output;
@@ -214,11 +214,11 @@ public:
                         coor_pub.publish(coordinate);
                         coordinate.data.clear();
 
-                        cloud.points[i].x = hx;
-                        cloud.points[i].y = hy;
-                        cloud.points[i].z = hz;
+                        cloud.points[i].x = hx/100;
+                        cloud.points[i].y = hy/100;
+                        cloud.points[i].z = hz/100;
                         pcl::toROSMsg(cloud, output);
-                        output.header.frame_id = "map";
+                        output.header.frame_id = "world";
                         pcl_pub.publish(output);
                     }
                     i += 1;
