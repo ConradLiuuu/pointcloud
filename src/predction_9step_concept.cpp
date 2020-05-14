@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 
   int anchor = 0;
   int anchor2 = 0;
-  int i = 27;
+  int i = 0;
   int j = 0;
   int cnt = 1;
   while (ros::ok())
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
     j = 0;
     */
 
-   while (i < 54){
+   while (i < 27){
      measurement.points[anchor].x = pred[i+27]/100;
      measurement.points[anchor].y = pred[i+28]/100;
      measurement.points[anchor].z = pred[i+29]/100;

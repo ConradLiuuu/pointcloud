@@ -56,14 +56,14 @@ class Listener:
         self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top5')
         self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top6')
         rospy.loginfo("loaded top prediction model")
-        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left5')
-        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_left6')
+        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left5')
+        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left6')
         rospy.loginfo("loaded left prediction model")
-        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_right5')
-        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_right6')
+        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right5')
+        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right6')
         rospy.loginfo("loaded right prediction model")
-        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_back5')
-        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_9steps_128_20200421/prediction_back6')
+        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back5')
+        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back6')
         rospy.loginfo("loaded back prediction model")
         self.__csv_path = '/home/lab606a/catkin_ws/src/pointcloud/offline/'
         rospy.loginfo("already load model")
@@ -162,6 +162,7 @@ class Listener:
         if (self.__anchor == 0) and (self.__rowww == 0) and ( -10 < float(cp.min(self.__pred[self.__anchor,0,:])) < 10):
             self.__pred[self.__anchor,0,:] = 0
         self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
+        self.pub_prediction()
 
     def calculate_hitting_point(self, arr):
         #print("cnt = ", self.__cnt)
@@ -229,7 +230,7 @@ class Listener:
                     self.__possible_point = self.__possible_point
 
                 self.__cal_possible_point = True
-                self.pub_prediction()
+                #self.pub_prediction()
                 '''
                 if (row < 8):
                     arr[self.__anchor, row+1:, :] = 0
@@ -252,8 +253,13 @@ class Listener:
                     self.__cal_possible_point = True
     
     def pub_prediction(self):
+        '''
         msg = self.__possible_point.astype('float32')
         self.__pred_msg.data = msg.reshape(4,1)
+        self.__pub.publish(self.__pred_msg)
+        '''
+        msg = self.__pred.astype('float32')
+        self.__pred_msg.data = msg.reshape(self.__pred.shape[0]*self.__pred.shape[1]*self.__pred.shape[2],1)
         self.__pub.publish(self.__pred_msg)
 
     def calculate_vis_hitting_point(self):
@@ -361,7 +367,7 @@ class Listener:
         
         #fig, ax = plt.subplots(2,2, figsize=(10.24,7.2))
         
-        self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        self.fig, self.ax = plt.subplots(2,2, figsize=(12.0,10.0)) ##(10.24,7.2)
 
         self.ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green')
         self.ax[0,0].plot(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
@@ -369,6 +375,7 @@ class Listener:
         self.ax[0,0].grid(True)
         self.ax[0,0].set_xlabel('update times')
         self.ax[0,0].set_ylabel('hitting timimg (sec)')
+        self.ax[0,0].set_title('Hitting timimg')
 
         self.ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*Euclidean_vis), color='green')
         self.ax[0,1].plot(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
@@ -376,6 +383,7 @@ class Listener:
         self.ax[0,1].grid(True)
         self.ax[0,1].set_xlabel('update times')
         self.ax[0,1].set_ylabel('Euclidean distance (cm)')
+        self.ax[0,1].set_title('Euclidean distance')
 
         self.ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[1]), color='green')
         self.ax[1,0].plot(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
@@ -383,6 +391,7 @@ class Listener:
         self.ax[1,0].grid(True)
         self.ax[1,0].set_xlabel('update times')
         self.ax[1,0].set_ylabel('X-coordinate (cm)')
+        self.ax[1,0].set_title('X-coordinate')
 
         self.ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[3]), color='green')
         self.ax[1,1].plot(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
@@ -390,6 +399,8 @@ class Listener:
         self.ax[1,1].grid(True)
         self.ax[1,1].set_xlabel('update times')
         self.ax[1,1].set_ylabel('Z-Coordinate (cm)')
+        self.ax[1,1].set_title('Z-Coordinate')
+
         '''
         #plt.clf()
         plt.figure(figsize=(10.24,7.2))

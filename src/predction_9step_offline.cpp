@@ -35,7 +35,7 @@ int main(int argc, char** argv)
   visual.height = 1;
   visual.points.resize(visual.width * visual.height);
 
-  string path = "/home/lab606a/catkin_ws/src/pointcloud/offline/";
+  string path = "/home/lab606a/catkin_ws/src/pointcloud/offline/20200505/";
   string pred_path = path + "prediction" + num_ + ".csv";
   string vis_path = path + "visurement" + num_ + ".csv";
 

@@ -31,7 +31,7 @@ int main(int argc, char** argv)
   visual.points.resize(visual.width * visual.height);
 
   fstream myfile;
-  myfile.open ("/home/lab606a/Documents/offline/right2_re.csv");
+  myfile.open ("/home/lab606a/Documents/offline/top2_re.csv");
 
   string line;
 
