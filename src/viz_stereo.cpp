@@ -94,24 +94,24 @@ int main(int argc, char** argv)
 
   int i = 0;
   while(i < mea.size()){
-    measurement.points[i].x = mea[i];
-    measurement.points[i].y = mea[i+1];
-    measurement.points[i].z = mea[i+2];
+    measurement.points[i].x = mea[i]/100;
+    measurement.points[i].y = mea[i+1]/100;
+    measurement.points[i].z = mea[i+2]/100;
 
-    visual.points[i].x = vis[i];
-    visual.points[i].y = vis[i+1];
-    visual.points[i].z = vis[i+2];
+    visual.points[i].x = vis[i]/100;
+    visual.points[i].y = vis[i+1]/100;
+    visual.points[i].z = vis[i+2]/100;
 
     i = i + 3;
   }
 
   while(ros::ok()){
     pcl::toROSMsg(measurement, measurement_output);
-    measurement_output.header.frame_id = "map";
+    measurement_output.header.frame_id = "world";
     measurement_pub.publish(measurement_output);
 
     pcl::toROSMsg(visual, visual_output);
-    visual_output.header.frame_id = "map";
+    visual_output.header.frame_id = "world";
     visual_pub.publish(visual_output);
   }
   return 0;

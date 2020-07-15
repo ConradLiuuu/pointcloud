@@ -196,8 +196,8 @@ void trajectory(){
   //std::ofstream myfile;
   //myfile.open ("/home/lab606a/Documents/tmp.csv");
 
-  int start = 1699;
-  int end = 1721;
+  int start = 1540;
+  int end = 1563;
 
   //path_L = "/home/lab606a/trajectory_offline/up/1/left/left";
 
@@ -206,9 +206,9 @@ void trajectory(){
     //id_R = ID_R;
     cout << start << endl;
 
-    path_L = "/home/lab606a/trajectory_offline/right/4/left/left";
+    path_L = "/home/lab606a/trajectory_offline/right/2/left/left";
     path_L = path_L + std::to_string(start) + ".jpg";
-    path_R = "/home/lab606a/trajectory_offline/right/4/right/right";
+    path_R = "/home/lab606a/trajectory_offline/right/2/right/right";
     path_R = path_R + std::to_string(start) + ".jpg";
 
     img_L = cv::imread(path_L);
@@ -253,6 +253,7 @@ void trajectory(){
     //imwrite(file_name_R, img_R, compression_params);
 
     start += 1;
+    i += 1;
 /*
     if (id_L == id_R){
 

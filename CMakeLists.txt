@@ -153,6 +153,7 @@ add_executable(viz_prediction src/viz_prediction.cpp)
 add_executable(stereoooo src/stereoooo.cpp)
 add_executable(predction_9step_offline src/predction_9step_offline.cpp)
 add_executable(predction_9step_concept src/predction_9step_concept.cpp)
+add_executable(online_offline_comparison src/online_offline_comparison.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -232,6 +233,11 @@ target_link_libraries(predction_9step_offline
 )
 
 target_link_libraries(predction_9step_concept
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(online_offline_comparison
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )

@@ -286,7 +286,7 @@ void trajectory(){
 
       }
       end_ = ros::Time::now().toSec();
-      cout << (end_-start_) << endl;
+      //cout << (end_-start_) << endl;
     }
   }
   //myfile.close();

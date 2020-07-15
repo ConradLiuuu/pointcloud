@@ -8,6 +8,7 @@ from keras.models import load_model
 from keras.preprocessing import sequence
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import sys
 
 graph = tf.get_default_graph()
 
@@ -34,8 +35,11 @@ class Listener:
         self.__cnt = 1
         self.__num = 1
         self.__max_index = 0
+        self.__coor = -10*cp.ones(6)
         self.__pred_msg = Float32MultiArray()
+        self.__ttbot_msg = Float32MultiArray()
         self.__pub = rospy.Publisher("/prediction_coordinate", Float32MultiArray, queue_size=1)
+        self.__pub_ttbot = rospy.Publisher("/TTbot/hitting_point", Float32MultiArray, queue_size=1)
         self.__find_possible_point = False
         self.__cal_possible_point = False
         self.__vis_possible_point = False
@@ -51,22 +55,35 @@ class Listener:
         self.__rowww = 0
         self.__direction = 'top5'
         self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
-        self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/classification_30ball_20200505_256to8')
-        rospy.loginfo("loaded classification model")
-        self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top5')
-        self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top6')
-        rospy.loginfo("loaded top prediction model")
-        self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left5')
-        self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left6')
-        rospy.loginfo("loaded left prediction model")
-        self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right5')
-        self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right6')
-        rospy.loginfo("loaded right prediction model")
-        self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back5')
-        self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back6')
-        rospy.loginfo("loaded back prediction model")
         self.__csv_path = '/home/lab606a/catkin_ws/src/pointcloud/offline/'
-        rospy.loginfo("already load model")
+        if sys.argv[1] == 'fixed':
+            self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/classification_30ball_20200505_256to8')
+            rospy.loginfo("loaded classification model")
+            self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top5')
+            self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_top6')
+            rospy.loginfo("loaded top prediction model")
+            self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left5')
+            self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_left6')
+            rospy.loginfo("loaded left prediction model")
+            self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right5')
+            self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_right6')
+            rospy.loginfo("loaded right prediction model")
+            self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back5')
+            self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_back6')
+            rospy.loginfo("loaded back prediction model")
+            rospy.loginfo("Load fixed model")
+        else:
+            self.__classifier = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/classification_notfixed_20200505_256to8')
+            self.__pred_top5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_top5')
+            self.__pred_top6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_top6')
+            self.__pred_left5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_left5')
+            self.__pred_left6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_left6')
+            self.__pred_right5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_right5')
+            self.__pred_right6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_right6')
+            self.__pred_back5 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_back5')
+            self.__pred_back6 = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_not_fixed_back6')
+            rospy.loginfo("Load not fixed model")
+        #rospy.loginfo("already load model")
 
     ## print spin direction and speed
     def top5(self):
@@ -163,6 +180,14 @@ class Listener:
             self.__pred[self.__anchor,0,:] = 0
         self.__pred_for_offline = cp.vstack((self.__pred_for_offline, self.__pred))
         self.pub_prediction()
+
+    def for_ttbot(self):
+        self.__coor = self.__coor.astype('float32')
+        self.__coor[0:3] = self.__vis_point[0,:]
+        if self.__tmp.shape[1] > 27:
+            self.__coor[3:6] = self.__possible_point[1:4]
+        self.__ttbot_msg.data = self.__coor.reshape(6,1)
+        self.__pub_ttbot.publish(self.__ttbot_msg)
 
     def calculate_hitting_point(self, arr):
         #print("cnt = ", self.__cnt)
@@ -347,6 +372,148 @@ class Listener:
             self.__arr_prediction[:,:] = self.__tmp[:,self.__tmp.shape[1]-(self.__time_step*3):] ## rolling visual measurement for predct next 5 steps
             self.show_spin_direction(self.__max_index) ## predct next 5 steps
             self.__time += self.__delta_T
+
+    def plot_hp_plane(self):
+        pred_hp = self.__arr_pred_possible[-1:,1:]
+        vis_hp = self.__vis_hitting_point[1:]
+        pred_hp = pred_hp.reshape(1,3)
+        vis_hp = vis_hp.reshape(1,3)
+
+        error = vis_hp - pred_hp
+        #error = error.reshape(1,3)
+
+        plt.figure(figsize=(8,8))
+        circle = plt.Circle((0, 0), 7.5, color='r', fill=False)
+        ax = plt.gca()
+        ax.add_artist(circle)
+        ax.set_xlim((-15, 15))
+        ax.set_ylim((-15, 15))
+
+        plt.scatter(0,0,marker='o', color='r')
+        plt.scatter(cp.asnumpy(error[0,0]), cp.asnumpy(error[0,2]), marker='x', color='b')
+
+        plt.xlabel('X coordinate error (cm)', fontsize=20, fontname='FreeSerif')
+        plt.ylabel('Z coordinate error (cm)', fontsize=20, fontname='FreeSerif')
+        plt.xticks(fontsize=14, fontname='FreeSerif')
+        plt.yticks(fontsize=14, fontname='FreeSerif')
+
+        plt.title('X Z hitting plane', fontsize=20, fontname='FreeSerif')
+        plt.tight_layout(pad=1.5)
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_XZ_plane' + '.png'
+        plt.savefig(name)
+
+    def plot_res(self):
+        self.__arr_pred_possible = cp.round_(self.__arr_pred_possible, 4)
+        self.__vis_hitting_point = cp.round_(self.__vis_hitting_point, 4)
+
+        update_times = cp.linspace(1, self.__arr_pred_possible.shape[0], self.__arr_pred_possible.shape[0])
+        t = self.__arr_pred_possible[:,0]
+        x = self.__arr_pred_possible[:,1]
+        z = self.__arr_pred_possible[:,3]
+        Euclidean_vis = cp.sqrt(cp.sum(cp.power(self.__vis_hitting_point[1:],2)))
+        Euclidean_pred = cp.sqrt(cp.sum(cp.power(self.__arr_pred_possible[:,1:],2), axis=1))
+
+        plt.figure(figsize=(8,7))
+
+        ## plot hitting timing
+        plt.clf()
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green') #vis
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(t), color='blue') #pred
+        plt.scatter(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
+        plt.grid(True)
+        plt.xticks(fontsize=14, fontname='FreeSerif')
+        plt.yticks(fontsize=14, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Hitting timimg (sec)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and hitting timing', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_timing' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((t-self.__vis_hitting_point[0])*1000)
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Hitting timimg error (ms)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and hitting timing error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_timing_error' + '.png'
+        plt.savefig(name)
+
+        ## plot Euclidean distance
+        plt.clf()
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*Euclidean_vis), color='green') #vis
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue') #pred
+        plt.scatter(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
+        plt.grid(True)
+        plt.xticks(fontsize=14, fontname='FreeSerif')
+        plt.yticks(fontsize=14, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Euclidean distance (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Euclidean distance', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_distance' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((Euclidean_pred-Euclidean_vis))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Euclidean distance error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Euclidean distance error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_distance_error' + '.png'
+        plt.savefig(name)
+
+        ## plot x coordinate
+        plt.clf()
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[1]), color='green') #vis
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(x), color='blue') #pred
+        plt.scatter(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
+        plt.grid(True)
+        plt.xticks(fontsize=14, fontname='FreeSerif')
+        plt.yticks(fontsize=14, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('X-coordinate (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and X-coordinate', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_X-coordinate' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((x-self.__vis_hitting_point[1]))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('X-coordinate error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and X-coordinate error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_X-coordinate_error' + '.png'
+        plt.savefig(name)
+
+        ## plot z coordinate
+        plt.clf()
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[3]), color='green') #vis
+        plt.plot(cp.asnumpy(update_times), cp.asnumpy(z), color='blue') #pred
+        plt.scatter(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
+        plt.grid(True)
+        plt.xticks(fontsize=14, fontname='FreeSerif')
+        plt.yticks(fontsize=14, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Z-coordinate (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Z-coordinate', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_Z-coordinate' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((z-self.__vis_hitting_point[3]))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Z-coordinate error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Z-coordinate error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_Z-coordinate_error' + '.png'
+        plt.savefig(name)
     
     def plot_error(self):
         self.ax[0,0].remove()
@@ -479,6 +646,7 @@ class Listener:
                 self.classification() ## doing classification and prediction
             if (self.__tmp.shape[1] > 90): ## while colect balls over 30 balls, stop doing classification
                 self.show_spin_direction(self.__max_index) ## skip classification doing prediction
+            self.for_ttbot()
             self.__time += self.__delta_T
             self.__cnt += 1
             
@@ -487,12 +655,15 @@ class Listener:
                 self.calculate_vis_hitting_point()
                 print("pred hitting point = ", self.__arr_pred_possible)
                 if (self.__pred_for_offline.shape[0] != 1):
-                    self.plot_error()
+                    #self.plot_error()
+                    self.plot_res()
+                    self.plot_hp_plane()
                     self.save_data()
                 self.__num += 1
 
             self.__padding_done = False
             self.__arr_classification = cp.zeros([1,90])
+            self.__coor = -10*cp.ones(6)
             self.__vis_balls = cp.zeros((self.__time_step,3))
             self.__cnt = 1
             self.__pred = cp.zeros([1,self.__time_step,3])

@@ -35,7 +35,7 @@ int main(int argc, char** argv)
   visual.height = 1;
   visual.points.resize(visual.width * visual.height);
 
-  string path = "/home/lab606a/catkin_ws/src/pointcloud/offline/20200505/";
+  string path = "/home/lab606a/TableTennis_ws/src/ttts/offline/";
   string pred_path = path + "prediction" + num_ + ".csv";
   string vis_path = path + "visurement" + num_ + ".csv";
 
@@ -56,6 +56,7 @@ int main(int argc, char** argv)
 
   cout << "pred shape = " << pred.size() << endl;
   int pred_row = pred.size()/3;
+  cout << "pred rows = " << pred_row << endl;
 
   myfile.open (vis_path);
   while (getline(myfile, line, '\n')){
@@ -68,11 +69,13 @@ int main(int argc, char** argv)
 
   myfile.close();
 
-  cout << "vis shape = " << vis.size() << endl;
+  cout << "vis rows = " << vis.size()/3 << endl;
   int vis_row = vis.size()/3;
   int move_times = vis_row-8;
   cout << "move times = " << move_times << endl;
-  int pred_append = pred_row/move_times/9;
+  //int pred_append = pred_row/move_times/9;
+
+  int pred_append = pred_row/9/vis_row + 1;
   cout << "pred append = " << pred_append << endl;
 
   int anchor = 0;

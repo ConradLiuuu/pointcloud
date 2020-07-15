@@ -8,6 +8,7 @@ from keras.models import load_model
 from keras.preprocessing import sequence
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import sys
 
 graph = tf.get_default_graph()
 
@@ -33,6 +34,7 @@ class Listener:
         self.__padding_done = False
         self.__cnt = 1
         self.__num = 1
+        self.__cnt4ttbot = 0
         self.__max_index = 0
         self.__pred_msg = Float32MultiArray()
         self.__ttbot_msg = Float32MultiArray()
@@ -43,7 +45,7 @@ class Listener:
         self.__cal_possible_point = False
         self.__vis_possible_point = False
         self.__vis_hitting_point = cp.zeros((1,4))
-        self.__hitting_point = -45
+        self.__hitting_point = -38
         self.__hitting_timimg = 0
         self.__possible_point = cp.zeros((1,4))
         self.__pred = cp.zeros([1,self.__time_step,3])
@@ -53,10 +55,15 @@ class Listener:
         self.__anchor = 0
         self.__rowww = 0
         self.__direction = 'top5'
-        self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
+        #self.fig, self.ax = plt.subplots(2,2, figsize=(10.24,7.2))
         self.__csv_path = '/home/lab606a/catkin_ws/src/pointcloud/offline/'
-        self.__prediction_model = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/60hz_culstm/prediction_all_test')
-        rospy.loginfo("already load model")
+        if sys.argv[1] == 'fixed':
+            self.__prediction_model = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/fixed/prediction_all_test')
+            rospy.loginfo("Load fixed prediction mdoel")
+        else:
+            self.__prediction_model = load_model('/home/lab606a/catkin_ws/src/pointcloud/models/not_fixed/prediction_all_not_fixed')
+            rospy.loginfo("Load not fixed prediction mdoel")
+        #rospy.loginfo("already load model")
 
     ## print spin direction and speed
     def top5(self):
@@ -255,10 +262,11 @@ class Listener:
     def for_ttbot(self):
         self.__coor = self.__coor.astype('float32')
         self.__coor[0:3] = self.__vis_point[0,:]
-        if self.__tmp.shape[1] > 27:
+        if self.__tmp.shape[1] > 27 and self.__cnt4ttbot <= 20: 
             self.__coor[3:6] = self.__possible_point[1:4]
         self.__ttbot_msg.data = self.__coor.reshape(6,1)
         self.__pub_ttbot.publish(self.__ttbot_msg)
+        self.__cnt4ttbot += 1
 
     def calculate_vis_hitting_point(self):
         if (-50 <= float(cp.min(self.__vis_balls2)) <= self.__hitting_point):
@@ -367,13 +375,14 @@ class Listener:
         Euclidean_vis = cp.sqrt(cp.sum(cp.power(self.__vis_hitting_point[1:],2)))
         Euclidean_pred = cp.sqrt(cp.sum(cp.power(self.__arr_pred_possible[:,1:],2), axis=1))
 
-        plt.figure(figsize=(7,7))
+        plt.figure(figsize=(8,7))
 
         ## plot hitting timing
         plt.clf()
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[0]), color='green') #vis
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(t), color='blue') #pred
         plt.scatter(cp.asnumpy(update_times), cp.asnumpy(t), color='blue')
+        plt.grid(True)
         plt.xticks(fontsize=14, fontname='FreeSerif')
         plt.yticks(fontsize=14, fontname='FreeSerif')
         plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
@@ -382,17 +391,40 @@ class Listener:
         name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_timing' + '.png'
         plt.savefig(name)
 
+        plt.clf()
+        err = cp.abs((t-self.__vis_hitting_point[0])*1000)
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Hitting timimg error (ms)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and hitting timing error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_timing_error' + '.png'
+        plt.savefig(name)
+
         ## plot Euclidean distance
         plt.clf()
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*Euclidean_vis), color='green') #vis
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue') #pred
         plt.scatter(cp.asnumpy(update_times), cp.asnumpy(Euclidean_pred), color='blue')
+        plt.grid(True)
         plt.xticks(fontsize=14, fontname='FreeSerif')
         plt.yticks(fontsize=14, fontname='FreeSerif')
         plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
         plt.ylabel('Euclidean distance (cm)', fontsize=24, fontname='FreeSerif')
-        plt.title('Relationship between \n update times and Euclidean distance', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Euclidean distance', fontsize=24, fontweight='bold', fontname='FreeSerif')
         name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_distance' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((Euclidean_pred-Euclidean_vis))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Euclidean distance error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Euclidean distance error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_distance_error' + '.png'
         plt.savefig(name)
 
         ## plot x coordinate
@@ -400,12 +432,24 @@ class Listener:
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[1]), color='green') #vis
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(x), color='blue') #pred
         plt.scatter(cp.asnumpy(update_times), cp.asnumpy(x), color='blue')
+        plt.grid(True)
         plt.xticks(fontsize=14, fontname='FreeSerif')
         plt.yticks(fontsize=14, fontname='FreeSerif')
         plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
         plt.ylabel('X-coordinate (cm)', fontsize=24, fontname='FreeSerif')
-        plt.title('Relationship between \n update times and X-coordinate', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and X-coordinate', fontsize=24, fontweight='bold', fontname='FreeSerif')
         name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_X-coordinate' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((x-self.__vis_hitting_point[1]))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('X-coordinate error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and X-coordinate error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_X-coordinate_error' + '.png'
         plt.savefig(name)
 
         ## plot z coordinate
@@ -413,12 +457,24 @@ class Listener:
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(cp.ones((self.__arr_pred_possible.shape[0],))*self.__vis_hitting_point[3]), color='green') #vis
         plt.plot(cp.asnumpy(update_times), cp.asnumpy(z), color='blue') #pred
         plt.scatter(cp.asnumpy(update_times), cp.asnumpy(z), color='blue')
+        plt.grid(True)
         plt.xticks(fontsize=14, fontname='FreeSerif')
         plt.yticks(fontsize=14, fontname='FreeSerif')
         plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
         plt.ylabel('Z-coordinate (cm)', fontsize=24, fontname='FreeSerif')
-        plt.title('Relationship between \n update times and Z-coordinate', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Z-coordinate', fontsize=24, fontweight='bold', fontname='FreeSerif')
         name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_Z-coordinate' + '.png'
+        plt.savefig(name)
+
+        plt.clf()
+        err = cp.abs((z-self.__vis_hitting_point[3]))
+        plt.bar(cp.asnumpy(update_times), cp.asnumpy(err), color='blue', edgecolor='black', width=0.5)
+        plt.xticks(fontsize=18, fontname='FreeSerif')
+        plt.yticks(fontsize=18, fontname='FreeSerif')
+        plt.xlabel('Update times', fontsize=24, fontname='FreeSerif')
+        plt.ylabel('Z-coordinate error (cm)', fontsize=24, fontname='FreeSerif')
+        plt.title('Relationship between \n update times and Z-coordinate error', fontsize=24, fontweight='bold', fontname='FreeSerif')
+        name = '/home/lab606a/catkin_ws/src/pointcloud/fig/' + str(self.__num) + '_Z-coordinate_error' + '.png'
         plt.savefig(name)
 
     
@@ -564,7 +620,7 @@ class Listener:
         else:
             if (self.__padding_done == True):
                 self.calculate_vis_hitting_point()
-                print("pred hitting point = ", self.__arr_pred_possible)
+                print("pred hitting point = \n", self.__arr_pred_possible)
                 if (self.__pred_for_offline.shape[0] != 1):
                     #self.plot_error()
                     self.plot_res()
@@ -583,6 +639,7 @@ class Listener:
             self.__vis_possible_point = False
             self.__pred_for_offline = cp.zeros([1,self.__time_step,3])
             self.__time = 0.016667 ## reset time
+            self.__cnt4ttbot = 0
 
 if __name__ == '__main__':
     rospy.init_node('classifier_test_60hz_9step_pred')
